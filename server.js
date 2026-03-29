@@ -11,8 +11,11 @@ const path     = require('path');
 const { v4: uuid } = require('uuid');
 const { runSEO } = require('./runner');
 
-const DATA_FILE = path.join(__dirname, 'data/sites.json');
-const PORT = 5555;
+const DATA_FILE = path.join(__dirname, 'data', 'sites.json');
+// צור קובץ אם לא קיים
+if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '{"sites":[]}');
+const PORT = process.env.PORT || 5555;
 
 // ── State ────────────────────────────────────
 let sites = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')).sites || [];
