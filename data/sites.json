@@ -1,0 +1,14 @@
+{
+  "sites": [
+    {
+      "id": "46714ac2-1372-4e63-9983-834ec633ab88",
+      "name": "אקס ויזן",
+      "url": "http://www.xvision.co.il",
+      "dir": "",
+      "schedule": "0 8 * * *",
+      "keywords": [],
+      "history": [],
+      "active": true
+    }
+  ]
+}
