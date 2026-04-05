@@ -187,6 +187,27 @@ header h1 span{color:var(--red)}
         <button class="api-save" onclick="saveApiKey()">שמור</button>
       </div>
     </div>
+    <div class="settings-bar">
+      <label>GitHub Token (לפרסום מאמרים)</label>
+      <div class="api-row">
+        <input class="api-input" type="password" id="githubTokenInput" placeholder="ghp_..." />
+        <button class="api-save" onclick="saveGithubToken()">שמור</button>
+      </div>
+    </div>
+    <div class="settings-bar">
+      <label>GitHub Repo</label>
+      <div class="api-row">
+        <input class="api-input" type="text" id="githubRepoInput" placeholder="user/repo" dir="ltr" />
+        <button class="api-save" onclick="saveGithubRepo()">שמור</button>
+      </div>
+    </div>
+    <div class="settings-bar">
+      <label>Ayrshare Key (רשתות חברתיות)</label>
+      <div class="api-row">
+        <input class="api-input" type="password" id="ayrshareInput" placeholder="..." />
+        <button class="api-save" onclick="saveAyrshare()">שמור</button>
+      </div>
+    </div>
   </aside>
 
   <!-- ══ MAIN ══ -->
@@ -251,7 +272,10 @@ async function init() {
 async function loadSettings() {
   const r = await fetch('/api/settings');
   const d = await r.json();
-  if (d.apiKey) document.getElementById('apiKeyInput').placeholder = d.apiKey;
+  if (d.apiKey)      document.getElementById('apiKeyInput').placeholder      = d.apiKey;
+  if (d.githubToken) document.getElementById('githubTokenInput').placeholder = d.githubToken;
+  if (d.githubRepo)  document.getElementById('githubRepoInput').placeholder  = d.githubRepo;
+  if (d.ayrshareKey) document.getElementById('ayrshareInput').placeholder    = d.ayrshareKey;
 }
 
 async function loadSites() {
@@ -474,6 +498,23 @@ async function saveApiKey() {
   await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ apiKey: key }) });
   document.getElementById('apiKeyInput').value = '';
   document.getElementById('apiKeyInput').placeholder = '✅ נשמר';
+}
+async function saveGithubToken() {
+  const val = document.getElementById('githubTokenInput').value;
+  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ githubToken: val }) });
+  document.getElementById('githubTokenInput').value = '';
+  document.getElementById('githubTokenInput').placeholder = '✅ נשמר';
+}
+async function saveGithubRepo() {
+  const val = document.getElementById('githubRepoInput').value;
+  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ githubRepo: val }) });
+  document.getElementById('githubRepoInput').placeholder = val || '✅ נשמר';
+}
+async function saveAyrshare() {
+  const val = document.getElementById('ayrshareInput').value;
+  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ayrshareKey: val }) });
+  document.getElementById('ayrshareInput').value = '';
+  document.getElementById('ayrshareInput').placeholder = '✅ נשמר';
 }
 
 function clearLog() { if (selectedId) { logs[selectedId] = []; renderLog(); } }

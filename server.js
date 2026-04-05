@@ -20,7 +20,18 @@ const PORT = process.env.PORT || 5555;
 // ── State ────────────────────────────────────
 let sites = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')).sites || [];
 let cronJobs = {};   // siteId → cron task
-let apiKey = process.env.ANTHROPIC_API_KEY || '';
+let apiKey       = process.env.ANTHROPIC_API_KEY || '';
+let githubToken  = process.env.GITHUB_TOKEN      || '';
+let githubRepo   = process.env.GITHUB_REPO       || 'nirsala/xvision-website';
+let ayrshareKey  = process.env.AYRSHARE_API_KEY  || '';
+
+// הזרק לסביבה כך ש-github-publisher ו-social יוכלו לקרוא
+function syncEnv() {
+  if (githubToken) process.env.GITHUB_TOKEN = githubToken;
+  if (githubRepo)  process.env.GITHUB_REPO  = githubRepo;
+  if (ayrshareKey) process.env.AYRSHARE_API_KEY = ayrshareKey;
+}
+syncEnv();
 
 function save() {
   fs.writeFileSync(DATA_FILE, JSON.stringify({ sites }, null, 2));
@@ -72,12 +83,21 @@ app.post('/api/sites/:id/run', async (req, res) => {
   triggerRun(site);
 });
 
-// PUT api key
+// PUT settings
 app.put('/api/settings', (req, res) => {
-  if (req.body.apiKey !== undefined) apiKey = req.body.apiKey;
+  if (req.body.apiKey      !== undefined) apiKey      = req.body.apiKey;
+  if (req.body.githubToken !== undefined) githubToken = req.body.githubToken;
+  if (req.body.githubRepo  !== undefined) githubRepo  = req.body.githubRepo;
+  if (req.body.ayrshareKey !== undefined) ayrshareKey = req.body.ayrshareKey;
+  syncEnv();
   res.json({ ok: true });
 });
-app.get('/api/settings', (req, res) => res.json({ apiKey: apiKey ? '••••••••' + apiKey.slice(-4) : '' }));
+app.get('/api/settings', (req, res) => res.json({
+  apiKey:      apiKey      ? '••••' + apiKey.slice(-4)      : '',
+  githubToken: githubToken ? '••••' + githubToken.slice(-4) : '',
+  githubRepo,
+  ayrshareKey: ayrshareKey ? '••••' + ayrshareKey.slice(-4) : ''
+}));
 
 // ── WebSocket ────────────────────────────────
 const server = http.createServer(app);
