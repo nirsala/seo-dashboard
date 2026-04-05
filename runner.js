@@ -38,11 +38,40 @@ const TOPICS = [
   { title: 'מסכי LED לסופרמרקטים ורשתות מזון', keyword: 'מסכי LED סופרמרקט' },
 ];
 
+// מעקב נושאים שפורסמו — מונע כפילויות
+const fs = require('fs');
+const PUBLISHED_LOG = 'data/published-topics.json';
+
+function getPublishedTopics() {
+  try { return JSON.parse(fs.readFileSync(PUBLISHED_LOG, 'utf8')); } catch { return []; }
+}
+
+function markTopicPublished(topicTitle) {
+  const published = getPublishedTopics();
+  published.push({ title: topicTitle, date: new Date().toISOString().split('T')[0] });
+  if (!fs.existsSync('data')) fs.mkdirSync('data');
+  fs.writeFileSync(PUBLISHED_LOG, JSON.stringify(published, null, 2));
+}
+
+function pickTopic() {
+  const published = getPublishedTopics().map(p => p.title);
+  // מחפש נושא שלא פורסם עדיין
+  const unpublished = TOPICS.filter(t => !published.includes(t.title));
+  if (unpublished.length > 0) {
+    // בוחר לפי יום — כדי שיהיה עקבי אם מריצים פעמיים ביום
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    return unpublished[dayOfYear % unpublished.length];
+  }
+  // כל הנושאים פורסמו — מתחיל מחדש
+  fs.writeFileSync(PUBLISHED_LOG, '[]');
+  return TOPICS[0];
+}
+
 async function runSEO(site, log, apiKey) {
   const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0 };
   const date = new Date().toISOString().split('T')[0];
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-  const topic = TOPICS[dayOfYear % TOPICS.length];
+  const topic = pickTopic();
+  log('info', `📌 נושא היום: "${topic.title}" (מילת מפתח: ${topic.keyword})`);
   let articleSlug = '';
   let articleHtml = '';
 
@@ -67,22 +96,35 @@ async function runSEO(site, log, apiKey) {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2500,
+          max_tokens: 3000,
           messages: [{
             role: 'user',
-            content: `כתוב מאמר SEO בעברית בנושא: "${topic.title}"
+            content: `כתוב מאמר SEO מקצועי בעברית עבור חברת "Pixel by Keshet" — מומחים למסכי LED ושילוט דיגיטלי בישראל.
+
+נושא המאמר: "${topic.title}"
 מילת מפתח ראשית: "${topic.keyword}"
+תאריך: ${date}
 
-דרישות:
-- 700-900 מילים
-- כותרת H1 אחת בדיוק
-- 3 כותרות H2
+===== עקרונות E-E-A-T שחובה לקיים =====
+1. EXPERIENCE (ניסיון): כלול דוגמאות ספציפיות מהשטח, מספרים אמיתיים, מצבי לקוח אמיתיים
+2. EXPERTISE (מומחיות): השתמש במינוח מקצועי: pixel pitch, IP65, ניט, refresh rate, PWM
+3. AUTHORITATIVENESS: ציין שPixel by Keshet פועלת בישראל עם עשרות פרויקטים
+4. TRUSTWORTHINESS: כלול נתונים, השוואות, יתרונות וחסרונות — לא רק שיווק
+
+===== מבנה חובה =====
+- <h1> אחד בדיוק עם מילת המפתח
+- 3-4 כותרות <h2> שמכסות כוונות חיפוש שונות
+- כותרת אחת <h2> בפורמט שאלה (לדוגמה: "מתי כדאי לבחור מסך LED X?")
+- פסקת מסקנה עם CTA עדין
+- 800-1000 מילים
+- קישור פנימי אחד: <a href="/products.html">קטלוג המוצרים שלנו</a> או <a href="/#contact">קבל הצעת מחיר</a>
 - אזכור "Pixel by Keshet" ו-"xvision.co.il" פעם אחת כל אחד
-- סגנון מקצועי אך נגיש
-- בסוף הוסף 2 שאלות FAQ בפורמט JSON-LD:
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"[שאלה 1]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}},{"@type":"Question","name":"[שאלה 2]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}}]}</script>
 
-החזר HTML בלבד (גוף המאמר בלבד, ללא DOCTYPE/html/head).`
+===== FAQ Schema בסוף =====
+הוסף בסיום:
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"[שאלה 1 ספציפית לנושא]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת 2-3 משפטים]"}},{"@type":"Question","name":"[שאלה 2 ספציפית]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}},{"@type":"Question","name":"[שאלה 3 ספציפית]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}}]}</script>
+
+החזר HTML בלבד (גוף המאמר, ללא DOCTYPE/html/head/body).`
           }]
         })
       });
@@ -113,6 +155,7 @@ async function runSEO(site, log, apiKey) {
       if (result.ok) {
         score.publish = 20;
         log('success', `✅ פורסם: blog/${articleSlug}.html`);
+        markTopicPublished(topic.title);
 
         // עדכן אינדקס בלוג
         await updateBlogIndex(topic, articleSlug, date, log);
