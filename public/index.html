@@ -216,6 +216,7 @@ header h1 span{color:var(--red)}
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d71d43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <h1>SEO <span>Dashboard</span></h1>
       <div class="header-status"><span class="dot"></span> מחובר</div>
+      <button onclick="logout()" style="margin-right:0;margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:6px;color:rgba(255,255,255,.45);font-size:12px;padding:6px 14px;cursor:pointer;transition:all .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.45)'">יציאה</button>
     </header>
 
     <div id="mainContent">
@@ -262,15 +263,24 @@ const DAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 let selectedDays = [1,2,3,4,5];   // ברירת מחדל א-ה
 let runHour = '08', runMinute = '00';
 
+// ══ AUTH ════════════════════════════════════════════
+function getToken() { return localStorage.getItem('seo_token') || ''; }
+function authHeaders(extra) { return { 'Authorization': 'Bearer ' + getToken(), ...extra }; }
+function logout() { localStorage.removeItem('seo_token'); location.href = '/login.html'; }
+
 // ══ INIT ═══════════════════════════════════════════
 async function init() {
+  if (!getToken()) { location.href = '/login.html'; return; }
+  // בדוק שה-token תקין
+  const check = await fetch('/api/settings', { headers: authHeaders() });
+  if (check.status === 401) { logout(); return; }
   await loadSettings();
   await loadSites();
   connectWS();
 }
 
 async function loadSettings() {
-  const r = await fetch('/api/settings');
+  const r = await fetch('/api/settings', { headers: authHeaders() });
   const d = await r.json();
   if (d.apiKey)      document.getElementById('apiKeyInput').placeholder      = d.apiKey;
   if (d.githubToken) document.getElementById('githubTokenInput').placeholder = d.githubToken;
@@ -279,7 +289,7 @@ async function loadSettings() {
 }
 
 async function loadSites() {
-  const r = await fetch('/api/sites');
+  const r = await fetch('/api/sites', { headers: authHeaders() });
   sites = await r.json();
   renderSidebarList();
   if (sites.length > 0 && !selectedId) selectSite(sites[0].id);
@@ -470,12 +480,12 @@ function setRunBtn(running) {
 // ══ ACTIONS ═════════════════════════════════════════
 async function runNow() {
   if (!selectedId) return;
-  await fetch(`/api/sites/${selectedId}/run`, { method:'POST' });
+  await fetch(`/api/sites/${selectedId}/run`, { method:'POST', headers: authHeaders() });
 }
 
 async function deleteSite() {
   if (!selectedId || !confirm('למחוק את האתר?')) return;
-  await fetch(`/api/sites/${selectedId}`, { method:'DELETE' });
+  await fetch(`/api/sites/${selectedId}`, { method:'DELETE', headers: authHeaders() });
   selectedId = null;
   await loadSites();
   if (sites.length > 0) selectSite(sites[0].id);
@@ -486,7 +496,7 @@ async function saveSchedule() {
   if (!selectedId) return;
   const days = selectedDays.length === 7 ? '*' : selectedDays.join(',');
   const schedule = `${runMinute} ${runHour} * * ${days}`;
-  await fetch(`/api/sites/${selectedId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ schedule }) });
+  await fetch(`/api/sites/${selectedId}`, { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ schedule }) });
   const site = sites.find(s=>s.id===selectedId);
   if (site) site.schedule = schedule;
   renderSidebarList();
@@ -495,24 +505,24 @@ async function saveSchedule() {
 
 async function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value;
-  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ apiKey: key }) });
+  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ apiKey: key }) });
   document.getElementById('apiKeyInput').value = '';
   document.getElementById('apiKeyInput').placeholder = '✅ נשמר';
 }
 async function saveGithubToken() {
   const val = document.getElementById('githubTokenInput').value;
-  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ githubToken: val }) });
+  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ githubToken: val }) });
   document.getElementById('githubTokenInput').value = '';
   document.getElementById('githubTokenInput').placeholder = '✅ נשמר';
 }
 async function saveGithubRepo() {
   const val = document.getElementById('githubRepoInput').value;
-  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ githubRepo: val }) });
+  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ githubRepo: val }) });
   document.getElementById('githubRepoInput').placeholder = val || '✅ נשמר';
 }
 async function saveAyrshare() {
   const val = document.getElementById('ayrshareInput').value;
-  await fetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ayrshareKey: val }) });
+  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ ayrshareKey: val }) });
   document.getElementById('ayrshareInput').value = '';
   document.getElementById('ayrshareInput').placeholder = '✅ נשמר';
 }
@@ -552,7 +562,7 @@ async function addSite() {
   const url  = document.getElementById('mUrl').value.trim();
   const dir  = document.getElementById('mDir').value.trim();
   if (!url) { alert('נא להזין כתובת URL'); return; }
-  const res = await fetch('/api/sites', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: name||url, url, dir }) });
+  const res = await fetch('/api/sites', { method:'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ name: name||url, url, dir }) });
   const site = await res.json();
   sites.push(site);
   closeModal();

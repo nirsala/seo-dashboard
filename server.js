@@ -12,6 +12,8 @@ const { v4: uuid } = require('uuid');
 const { runSEO } = require('./runner');
 
 const DATA_FILE = path.join(__dirname, 'data', 'sites.json');
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'pixel2024';
+const validTokens = new Set();
 // צור קובץ אם לא קיים
 if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '{"sites":[]}');
@@ -40,6 +42,29 @@ function save() {
 // ── Express ──────────────────────────────────
 const app = express();
 app.use(express.json());
+
+// ── Auth ─────────────────────────────────────
+app.post('/api/auth/login', (req, res) => {
+  if (req.body.password === DASHBOARD_PASSWORD) {
+    const token = uuid();
+    validTokens.add(token);
+    return res.json({ ok: true, token });
+  }
+  res.status(401).json({ ok: false, error: 'סיסמא שגויה' });
+});
+
+function requireAuth(req, res, next) {
+  const auth = req.headers['authorization'] || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (validTokens.has(token)) return next();
+  res.status(401).json({ error: 'לא מורשה' });
+}
+
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/auth/')) return next();
+  requireAuth(req, res, next);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // GET sites

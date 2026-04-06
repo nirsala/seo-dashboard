@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>כניסה — SEO Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#080c14;color:#f0f4ff;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.box{background:#0d1220;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:40px 36px;width:100%;max-width:360px}
+.logo{text-align:center;font-size:22px;font-weight:900;letter-spacing:2px;margin-bottom:32px}
+.logo span{color:#d71d43}
+label{display:block;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.5px}
+input{width:100%;background:#111827;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:11px 14px;color:#f0f4ff;font-size:15px;outline:none;transition:border-color .2s}
+input:focus{border-color:rgba(215,29,67,.5)}
+button{width:100%;margin-top:20px;padding:12px;background:#d71d43;border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s}
+button:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+.err{margin-top:14px;text-align:center;font-size:13px;color:#f87171;min-height:18px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">SEO <span>●</span> DASHBOARD</div>
+  <label for="pwd">סיסמא</label>
+  <input id="pwd" type="password" placeholder="הכנס סיסמא" autofocus/>
+  <button id="btn" onclick="login()">כניסה</button>
+  <div class="err" id="err"></div>
+</div>
+<script>
+document.getElementById('pwd').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  const pwd = document.getElementById('pwd').value;
+  const btn = document.getElementById('btn');
+  const err = document.getElementById('err');
+  if (!pwd) return;
+  btn.disabled = true;
+  err.textContent = '';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      localStorage.setItem('seo_token', data.token);
+      location.href = '/';
+    } else {
+      err.textContent = data.error || 'שגיאה';
+      btn.disabled = false;
+    }
+  } catch {
+    err.textContent = 'שגיאת שרת';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
