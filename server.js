@@ -26,6 +26,8 @@ let apiKey       = process.env.ANTHROPIC_API_KEY || '';
 let githubToken  = process.env.GITHUB_TOKEN      || '';
 let githubRepo   = process.env.GITHUB_REPO       || 'nirsala/xvision-website';
 let ayrshareKey  = process.env.AYRSHARE_API_KEY  || '';
+let resendKey    = process.env.RESEND_API_KEY    || '';
+const REPORT_EMAIL = process.env.REPORT_EMAIL || 'nirsala@gmail.com';
 
 // הזרק לסביבה כך ש-github-publisher ו-social יוכלו לקרוא
 function syncEnv() {
@@ -114,6 +116,7 @@ app.put('/api/settings', (req, res) => {
   if (req.body.githubToken !== undefined) githubToken = req.body.githubToken;
   if (req.body.githubRepo  !== undefined) githubRepo  = req.body.githubRepo;
   if (req.body.ayrshareKey !== undefined) ayrshareKey = req.body.ayrshareKey;
+  if (req.body.resendKey   !== undefined) resendKey   = req.body.resendKey;
   syncEnv();
   res.json({ ok: true });
 });
@@ -139,6 +142,86 @@ function broadcast(msg) {
   clients.forEach(c => { if (c.readyState === 1) c.send(str); });
 }
 
+// ── Email Report ─────────────────────────────
+async function sendEmailReport(result, site) {
+  const key = resendKey || process.env.RESEND_API_KEY;
+  if (!key) {
+    console.log('[email] אין RESEND_API_KEY — מדלג על שליחת מייל');
+    return;
+  }
+
+  const scoreBar = '█'.repeat(Math.floor(result.score / 10)) + '░'.repeat(10 - Math.floor(result.score / 10));
+  const html = `
+<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0f0f1a;color:#e8eaf0;border-radius:12px;overflow:hidden">
+  <div style="background:linear-gradient(135deg,#d71d43,#8b0020);padding:28px 32px">
+    <h1 style="margin:0;font-size:20px;color:#fff">🔍 דוח SEO יומי — Pixel by Keshet</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,.7);font-size:13px">${result.date} | ${site.name}</p>
+  </div>
+  <div style="padding:28px 32px">
+    <div style="background:#1a1a2e;border-radius:10px;padding:20px;margin-bottom:20px;text-align:center">
+      <div style="font-size:48px;font-weight:900;color:${result.score >= 70 ? '#00cc66' : result.score >= 40 ? '#f59e0b' : '#d71d43'}">${result.score}<span style="font-size:20px;color:rgba(255,255,255,.4)">/100</span></div>
+      <div style="font-family:monospace;color:#d71d43;font-size:18px;letter-spacing:2px;margin-top:4px">${scoreBar}</div>
+      <div style="color:rgba(255,255,255,.5);font-size:12px;margin-top:6px">ציון SEO יומי</div>
+    </div>
+    ${result.topic ? `
+    <div style="background:#1a1a2e;border-radius:10px;padding:16px 20px;margin-bottom:16px;border-right:3px solid #d71d43">
+      <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">מאמר שפורסם</div>
+      <div style="font-weight:700;color:#fff">${result.topic}</div>
+    </div>` : ''}
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <td style="padding:10px 0;color:rgba(255,255,255,.5)">📝 תוכן</td>
+        <td style="padding:10px 0;text-align:left;color:#fff;font-weight:700">${result.breakdown?.content || 0}/20</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <td style="padding:10px 0;color:rgba(255,255,255,.5)">🚀 פרסום GitHub</td>
+        <td style="padding:10px 0;text-align:left;color:#fff;font-weight:700">${result.breakdown?.publish || 0}/20</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <td style="padding:10px 0;color:rgba(255,255,255,.5)">🔍 Bing IndexNow</td>
+        <td style="padding:10px 0;text-align:left;color:#fff;font-weight:700">${result.breakdown?.index_bing || 0}/15</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <td style="padding:10px 0;color:rgba(255,255,255,.5)">🔎 Google Sitemap</td>
+        <td style="padding:10px 0;text-align:left;color:#fff;font-weight:700">${result.breakdown?.index_google || 0}/15</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <td style="padding:10px 0;color:rgba(255,255,255,.5)">📱 רשתות חברתיות</td>
+        <td style="padding:10px 0;text-align:left;color:#fff;font-weight:700">${result.breakdown?.social || 0}/10</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;color:rgba(255,255,255,.5)">🌐 ניטור אתר</td>
+        <td style="padding:10px 0;text-align:left;color:#fff;font-weight:700">${result.breakdown?.monitor || 0}/10</td>
+      </tr>
+    </table>
+    <div style="margin-top:24px;text-align:center">
+      <a href="https://xvision.co.il" style="display:inline-block;padding:11px 24px;background:#d71d43;color:#fff;border-radius:7px;text-decoration:none;font-size:13px;font-weight:700">צפה באתר ←</a>
+    </div>
+  </div>
+  <div style="padding:16px 32px;border-top:1px solid rgba(255,255,255,.07);text-align:center;font-size:11px;color:rgba(255,255,255,.3)">
+    Pixel by Keshet SEO Dashboard | xvision.co.il
+  </div>
+</div>`;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'SEO Dashboard <onboarding@resend.dev>',
+        to: [REPORT_EMAIL],
+        subject: `📊 דוח SEO יומי — ציון ${result.score}/100 | ${result.date}`,
+        html
+      })
+    });
+    const data = await res.json();
+    if (res.ok) console.log(`[email] ✅ דוח נשלח ל-${REPORT_EMAIL}`);
+    else        console.error('[email] ❌ שגיאה:', data.message || JSON.stringify(data));
+  } catch(e) {
+    console.error('[email] ❌ שגיאת רשת:', e.message);
+  }
+}
+
 // ── SEO Runner ───────────────────────────────
 async function triggerRun(site) {
   const runId = uuid().slice(0,8);
@@ -160,6 +243,9 @@ async function triggerRun(site) {
       save();
     }
     broadcast({ type: 'run_end', siteId: site.id, runId, score: result.score, topic: result.topic });
+
+    // שליחת דוח במייל
+    await sendEmailReport(result, site).catch(e => console.error('[email] שגיאה:', e.message));
   } catch(e) {
     broadcast({ type: 'log', siteId: site.id, runId, level: 'error', message: `שגיאה: ${e.message}` });
     broadcast({ type: 'run_end', siteId: site.id, runId, score: 0 });
