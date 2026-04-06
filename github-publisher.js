@@ -49,8 +49,35 @@ async function publishFile(filePath, content, commitMsg) {
   }
 }
 
+// מפה מילות מפתח לתמונות Unsplash רלוונטיות (photo ID)
+const KEYWORD_IMAGES = [
+  { match: ['מסעד', 'תפריט', 'מזון', 'סופרמרקט'],   id: 'photo-1414235077428-338989a2e8c0' }, // restaurant/food
+  { match: ['מלון', 'לובי', 'אורחים'],               id: 'photo-1566073771259-6a8506099945' }, // hotel lobby
+  { match: ['ספורט', 'אצטדיון', 'כושר'],             id: 'photo-1540747913346-19212a4b32a6' }, // sports arena
+  { match: ['חוצות', 'שלט', 'billboard'],            id: 'photo-1558618666-fcd25c85cd64' }, // billboard outdoor
+  { match: ['בריכה', 'חיצוני', 'IP65', 'IP67'],      id: 'photo-1519315901367-f34ff9154487' }, // outdoor LED
+  { match: ['חינוך', 'בית ספר', 'מוסד'],             id: 'photo-1580582932707-520aed937b7b' }, // classroom screen
+  { match: ['בנק', 'קליניק', 'בית חולים', 'בריאות'], id: 'photo-1587351021759-3e566b6af7cc' }, // professional display
+  { match: ['קניון', 'רשת', 'חנות', 'ויטרינה'],      id: 'photo-1441984904996-e0b6ba687e04' }, // retail store
+  { match: ['אירוע', 'אולם', 'שמחות'],               id: 'photo-1492684223066-81342ee5ff30' }, // event hall
+  { match: ['pixel pitch', 'רזולוציה', 'CMS', 'ניהול'], id: 'photo-1518770660439-4636190af475' }, // tech/tech screen
+  { match: ['תחנת דלק', 'תחנה'],                     id: 'photo-1568605117036-5fe5e7bab0b7' }, // gas station
+];
+
+function pickArticleImage(keyword) {
+  const kw = (keyword || '').toLowerCase();
+  for (const item of KEYWORD_IMAGES) {
+    if (item.match.some(m => kw.includes(m.toLowerCase()))) {
+      return `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=1200&q=80`;
+    }
+  }
+  // ברירת מחדל — מסך LED עסקי
+  return `https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=1200&q=80`;
+}
+
 // בנה דף מאמר HTML מלא עם עיצוב
 function buildArticlePage(topic, articleHtml, date, slug) {
+  const heroImage = pickArticleImage(topic.keyword || topic.title);
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -63,7 +90,7 @@ function buildArticlePage(topic, articleHtml, date, slug) {
 <meta property="og:url" content="${SITE_URL}/blog/${slug}.html"/>
 <meta property="og:title" content="${topic.title}"/>
 <meta property="og:description" content="${topic.keyword} — מידע מקצועי מבית Pixel by Keshet"/>
-<meta property="og:image" content="${SITE_URL}/assets/images/portfolio-w2.jpg"/>
+<meta property="og:image" content="${heroImage}"/>
 <meta property="og:locale" content="he_IL"/>
 <meta property="og:site_name" content="Pixel by Keshet"/>
 <meta name="twitter:card" content="summary_large_image"/>
@@ -101,6 +128,7 @@ article li{color:rgba(255,255,255,.75);margin-bottom:8px}
 article strong{color:#fff}
 article em{color:#d71d43;font-style:normal;font-weight:700}
 .article-meta{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid rgba(255,255,255,.07)}
+.article-hero{width:100%;height:380px;object-fit:cover;border-radius:14px;margin-bottom:32px;display:block;box-shadow:0 8px 40px rgba(0,0,0,.5)}
 /* CTA BOX */
 .cta-box{background:linear-gradient(135deg,rgba(215,29,67,.12),rgba(215,29,67,.04));border:1px solid rgba(215,29,67,.3);border-radius:12px;padding:32px;text-align:center;margin:40px 0}
 .cta-box h3{font-size:1.25rem;font-weight:800;margin-bottom:10px}
@@ -139,6 +167,8 @@ footer{background:#111;border-top:1px solid rgba(255,255,255,.06);padding:28px 4
     על ידי Pixel by Keshet &nbsp;|&nbsp; ${new Date(date).toLocaleDateString('he-IL', {year:'numeric',month:'long',day:'numeric'})} &nbsp;|&nbsp; ${topic.keyword}
   </div>
 
+  <img src="${heroImage}" alt="${topic.title}" class="article-hero" loading="lazy"/>
+
   ${articleHtml}
 
   <div class="cta-box">
@@ -172,12 +202,18 @@ footer{background:#111;border-top:1px solid rgba(255,255,255,.06);padding:28px 4
 
 // בנה דף אינדקס בלוג
 function buildBlogIndex(articles) {
-  const cards = articles.map(a => `
+  const cards = articles.map(a => {
+    const img = pickArticleImage(a.keyword || a.title);
+    return `
     <article class="card">
-      <div class="card-tag">${a.keyword}</div>
-      <h2><a href="/blog/${a.slug}.html">${a.title}</a></h2>
-      <div class="card-meta">${a.date}</div>
-    </article>`).join('');
+      <a href="/blog/${a.slug}.html"><img src="${img}" alt="${a.title}" class="card-img" loading="lazy"/></a>
+      <div class="card-body">
+        <div class="card-tag">${a.keyword}</div>
+        <h2><a href="/blog/${a.slug}.html">${a.title}</a></h2>
+        <div class="card-meta">${a.date}</div>
+      </div>
+    </article>`;
+  }).join('');
 
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -201,8 +237,10 @@ nav{background:rgba(26,26,26,.97);border-bottom:1px solid rgba(255,255,255,.07);
 .hero h1{font-size:2.2rem;font-weight:900;margin-bottom:12px}
 .hero p{color:rgba(255,255,255,.55);font-size:1rem}
 .grid{max-width:1000px;margin:48px auto;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
-.card{background:#222;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:24px;transition:border-color .2s,transform .2s}
+.card{background:#222;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;transition:border-color .2s,transform .2s}
 .card:hover{border-color:rgba(215,29,67,.4);transform:translateY(-4px)}
+.card-img{width:100%;height:180px;object-fit:cover;display:block}
+.card-body{padding:20px}
 .card-tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#d71d43;font-weight:700;margin-bottom:10px}
 .card h2{font-size:1rem;font-weight:800;margin-bottom:10px;line-height:1.4}
 .card h2 a:hover{color:#d71d43}
