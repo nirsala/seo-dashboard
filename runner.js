@@ -7,38 +7,39 @@ const { pingDirectories } = require('./directories');
 const { checkUptime } = require('./monitor');
 const { publishFile, buildArticlePage, buildBlogIndex } = require('./github-publisher');
 
-const TOPICS = [
-  { title: 'מסכי LED לחנויות קמעונאיות — המדריך המלא', keyword: 'מסכי LED לחנויות' },
-  { title: '5 סיבות למה כל מסעדה צריכה שילוט דיגיטלי', keyword: 'שילוט דיגיטלי למסעדות' },
-  { title: 'מסכי LED חיצוניים — כל מה שצריך לדעת לפני הרכישה', keyword: 'מסכי LED חיצוניים' },
-  { title: 'מערכת ניהול תוכן למסכים (CMS) — המדריך המלא', keyword: 'CMS למסכי LED' },
-  { title: 'מסכי לובי — חוויית כניסה שתרשים כל מבקר', keyword: 'מסכי LED לובי' },
-  { title: 'מסכי בריכה עמידים לחוץ — המדריך לבחירה הנכונה', keyword: 'מסכי LED לבריכה' },
-  { title: 'כמה עולה מסך LED לעסק? מחיר, גדלים ואפשרויות', keyword: 'מחיר מסך LED לעסק' },
-  { title: 'מסכי LED לבתי מלון — חוויית אורחים ברמה אחרת', keyword: 'מסכי LED מלונות' },
-  { title: 'שילוט דיגיטלי לרשתות קמעונאיות — מדריך מקצועי', keyword: 'שילוט דיגיטלי רשתות' },
-  { title: 'מסכי LED בתל אביב — פתרונות שילוט לעסקים בעיר', keyword: 'מסכי LED תל אביב' },
-  { title: 'מסכי LED ירושלים — שילוט דיגיטלי בבירה', keyword: 'מסכי LED ירושלים' },
-  { title: 'מסכי LED חיפה — פתרונות לעסקים בצפון', keyword: 'מסכי LED חיפה' },
-  { title: 'תחזוקת מסכי LED — המדריך לשמירה על הציוד', keyword: 'תחזוקת מסכי LED' },
-  { title: 'השוואת מסכי LED — איך בוחרים את הנכון לעסק?', keyword: 'השוואת מסכי LED' },
-  { title: 'שלטי חוצות דיגיטליים — כל מה שצריך לדעת', keyword: 'שלטי חוצות דיגיטליים' },
-  { title: 'מסכי LED לבית ספר ולמוסדות חינוך', keyword: 'מסכי LED חינוך' },
-  { title: 'שילוט דיגיטלי לסניפי בנק — פתרונות מקצועיים', keyword: 'שילוט דיגיטלי בנקים' },
-  { title: 'מסכי LED לאולמות ספורט ואצטדיונים', keyword: 'מסכי LED ספורט' },
-  { title: 'מסכי LED לחדרי כושר ופיטנס', keyword: 'מסכי LED חדר כושר' },
-  { title: 'שילוט דיגיטלי לבתי חולים ומרפאות', keyword: 'שילוט דיגיטלי בריאות' },
-  { title: 'מסכי LED לאולמות שמחות ואירועים', keyword: 'מסכי LED אירועים' },
-  { title: 'תצוגות ויטרינה LED — פתרון חדשני לחנויות', keyword: 'תצוגות ויטרינה LED' },
-  { title: 'מסכי LED לפתח תקווה — שילוט דיגיטלי לעסקים מקומיים', keyword: 'מסכי LED פתח תקווה' },
-  { title: 'מסכי LED לרמת גן וגבעתיים', keyword: 'מסכי LED רמת גן' },
-  { title: 'היתר שלט חוצות דיגיטלי — מה שצריך לדעת', keyword: 'היתר שלט חוצות' },
-  { title: 'IP65 ו-IP67 — מה זה אומר למסכי LED חיצוניים?', keyword: 'IP65 מסכי LED' },
-  { title: 'pixel pitch מסכי LED — המדריך להבנת הרזולוציה', keyword: 'pixel pitch LED' },
-  { title: 'מסכי LED לסופרמרקטים ורשתות מזון', keyword: 'מסכי LED סופרמרקט' },
+// מאגר מילות מפתח — המערכת תייצר כותרת חדשה לכל אחת בכל הרצה
+const KEYWORDS = [
+  'מסכי LED לחנויות',
+  'שילוט דיגיטלי למסעדות',
+  'מסכי LED חיצוניים',
+  'CMS למסכי LED',
+  'מסכי LED לובי',
+  'מסכי LED לבריכה',
+  'מחיר מסך LED לעסק',
+  'מסכי LED מלונות',
+  'שילוט דיגיטלי רשתות',
+  'מסכי LED תל אביב',
+  'מסכי LED ירושלים',
+  'מסכי LED חיפה',
+  'תחזוקת מסכי LED',
+  'השוואת מסכי LED',
+  'שלטי חוצות דיגיטליים',
+  'מסכי LED חינוך',
+  'שילוט דיגיטלי בנקים',
+  'מסכי LED ספורט',
+  'מסכי LED חדר כושר',
+  'שילוט דיגיטלי בריאות',
+  'מסכי LED אירועים',
+  'תצוגות ויטרינה LED',
+  'מסכי LED פתח תקווה',
+  'מסכי LED רמת גן',
+  'היתר שלט חוצות',
+  'IP65 מסכי LED',
+  'pixel pitch LED',
+  'מסכי LED סופרמרקט',
 ];
 
-// מעקב נושאים שפורסמו — מונע כפילויות
+// מעקב כותרות שפורסמו — מונע כפילויות
 const fs = require('fs');
 const PUBLISHED_LOG = 'data/published-topics.json';
 
@@ -46,32 +47,66 @@ function getPublishedTopics() {
   try { return JSON.parse(fs.readFileSync(PUBLISHED_LOG, 'utf8')); } catch { return []; }
 }
 
-function markTopicPublished(topicTitle) {
+function markTopicPublished(title, keyword) {
   const published = getPublishedTopics();
-  published.push({ title: topicTitle, date: new Date().toISOString().split('T')[0] });
+  published.push({ title, keyword, date: new Date().toISOString().split('T')[0] });
   if (!fs.existsSync('data')) fs.mkdirSync('data');
   fs.writeFileSync(PUBLISHED_LOG, JSON.stringify(published, null, 2));
 }
 
-function pickTopic() {
+// בוחר מילת מפתח — מסתחרר על כל המילות לפי סדר
+function pickKeyword() {
+  const published = getPublishedTopics();
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  return KEYWORDS[dayOfYear % KEYWORDS.length];
+}
+
+// מבקש מ-Claude לייצר כותרת חדשה וייחודית למילת מפתח
+async function generateTitle(keyword, apiKey) {
   const published = getPublishedTopics().map(p => p.title);
-  // מחפש נושא שלא פורסם עדיין
-  const unpublished = TOPICS.filter(t => !published.includes(t.title));
-  if (unpublished.length > 0) {
-    // בוחר לפי יום — כדי שיהיה עקבי אם מריצים פעמיים ביום
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-    return unpublished[dayOfYear % unpublished.length];
-  }
-  // כל הנושאים פורסמו — מתחיל מחדש
-  fs.writeFileSync(PUBLISHED_LOG, '[]');
-  return TOPICS[0];
+  const usedTitles = published.length
+    ? `\nכותרות שכבר נכתבו (אל תחזור עליהן):\n${published.map(t => `- ${t}`).join('\n')}`
+    : '';
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `צור כותרת מאמר SEO אחת בעברית עבור חברת "Pixel by Keshet" — מומחים למסכי LED ושילוט דיגיטלי בישראל.
+מילת מפתח: "${keyword}"
+הכותרת חייבת להכיל את מילת המפתח, להיות מושכת, מקצועית, ולא דומה לקיימות.${usedTitles}
+
+החזר רק את הכותרת, ללא הסברים, ללא מרכאות.`
+      }]
+    })
+  });
+  const data = await res.json();
+  return (data.content?.[0]?.text || keyword).trim();
 }
 
 async function runSEO(site, log, apiKey) {
   const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0 };
   const date = new Date().toISOString().split('T')[0];
-  const topic = pickTopic();
-  log('info', `📌 נושא היום: "${topic.title}" (מילת מפתח: ${topic.keyword})`);
+  const keyword = pickKeyword();
+  log('info', `🔑 מילת מפתח: "${keyword}" — מייצר כותרת...`);
+  let articleTitle = keyword;
+  if (apiKey) {
+    try {
+      articleTitle = await generateTitle(keyword, apiKey);
+    } catch(e) {
+      log('warn', `⚠️ לא הצלחתי לייצר כותרת: ${e.message}`);
+    }
+  }
+  const topic = { title: articleTitle, keyword };
+  log('info', `📌 כותרת נבחרה: "${topic.title}"`);
   let articleSlug = '';
   let articleHtml = '';
 
@@ -155,7 +190,7 @@ async function runSEO(site, log, apiKey) {
       if (result.ok) {
         score.publish = 20;
         log('success', `✅ פורסם: blog/${articleSlug}.html`);
-        markTopicPublished(topic.title);
+        markTopicPublished(topic.title, topic.keyword);
 
         // עדכן אינדקס בלוג
         await updateBlogIndex(topic, articleSlug, date, log);
