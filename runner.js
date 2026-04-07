@@ -37,6 +37,16 @@ const KEYWORDS = [
   'IP65 מסכי LED',
   'pixel pitch LED',
   'מסכי LED סופרמרקט',
+  'שלטים דיגיטליים לעסקים',
+  'תפריט דיגיטלי למסעדה',
+  'מסכי LED למלונות',
+  'מסכי LED לאולמות אירועים',
+  'שילוט דיגיטלי לקניונים',
+  'מסכי LED לחדרי כושר',
+  'מסכי LED לסופרמרקט',
+  'מסכי LED לתחנות דלק',
+  'מסכי LED לקליניקות',
+  'שלטי חוצות LED ישראל',
 ];
 
 // מעקב כותרות שפורסמו — מונע כפילויות
@@ -93,7 +103,7 @@ async function generateTitle(keyword, apiKey) {
 }
 
 async function runSEO(site, log, apiKey) {
-  const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0 };
+  const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0, sitemap: 0 };
   const date = new Date().toISOString().split('T')[0];
   const keyword = pickKeyword();
   log('info', `🔑 מילת מפתח: "${keyword}" — מייצר כותרת...`);
@@ -233,12 +243,58 @@ async function runSEO(site, log, apiKey) {
     log('success', `✅ Bing IndexNow: ${bingRes.status}`);
   } catch(e) { log('error', `❌ Bing: ${e.message}`); }
 
-  // Google sitemap ping (deprecated but still works)
+  // Google IndexNow
   try {
-    const gRes = await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(siteUrl + '/sitemap.xml')}`);
+    const googleBody = {
+      host: new URL(siteUrl).hostname,
+      key: 'pixel2024seo',
+      keyLocation: `${siteUrl}/pixel2024seo.txt`,
+      urlList: urlsToIndex.filter(u => !u.includes('sitemap'))
+    };
+    const gRes = await fetch('https://www.google.com/indexnow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(googleBody)
+    });
     score.index_google = gRes.status < 400 ? 15 : 5;
-    log('success', `✅ Google Sitemap ping: ${gRes.status}`);
-  } catch(e) { log('warn', `⚠️ Google ping: ${e.message}`); }
+    log('success', `✅ Google IndexNow: ${gRes.status}`);
+  } catch(e) { log('warn', `⚠️ Google IndexNow: ${e.message}`); }
+
+  // ── שלב 4.5: עדכון sitemap.xml ──────────────
+  if (articleSlug) {
+    try {
+      const { publishFile: pub, GITHUB_TOKEN: ghToken, GITHUB_REPO: ghRepo } = require('./github-publisher');
+      if (ghToken) {
+        // קרא sitemap קיים מ-GitHub
+        let existingUrls = [];
+        const smRes = await fetch(`https://api.github.com/repos/${ghRepo}/contents/sitemap.xml`, {
+          headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' }
+        });
+        if (smRes.ok) {
+          const smData = await smRes.json();
+          const smText = Buffer.from(smData.content, 'base64').toString('utf8');
+          const matches = smText.match(/<loc>([^<]+)<\/loc>/g) || [];
+          existingUrls = matches.map(m => m.replace(/<\/?loc>/g, ''));
+        }
+        const newUrl = `${siteUrl}/blog/${articleSlug}.html`;
+        if (!existingUrls.includes(newUrl)) existingUrls.push(newUrl);
+        // בנה sitemap חדש
+        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join('\n')}
+</urlset>`;
+        const smResult = await pub('sitemap.xml', sitemap, `seo: update sitemap — ${articleSlug}`);
+        if (smResult.ok) {
+          score.sitemap = 10;
+          log('success', `✅ sitemap.xml עודכן (${existingUrls.length} URLs)`);
+        } else {
+          log('warn', `⚠️ sitemap: ${smResult.error}`);
+        }
+      } else {
+        log('warn', `⚠️ sitemap: אין GITHUB_TOKEN`);
+      }
+    } catch(e) { log('warn', `⚠️ sitemap: ${e.message}`); }
+  }
 
   // ── שלב 5: דירקטוריות ──────────────────────
   log('info', `📋 שלב 5/6: פינג מנועי חיפוש ודירקטוריות...`);
@@ -258,7 +314,7 @@ async function runSEO(site, log, apiKey) {
   } catch(e) { log('error', `❌ רשתות: ${e.message}`); }
 
   const total = Object.values(score).reduce((a, b) => a + b, 0);
-  log('info', `\n🏆 ציון: ${total}/100 | תוכן:${score.content} פרסום:${score.publish} Bing:${score.index_bing} Google:${score.index_google} סושיאל:${score.social} ניטור:${score.monitor}`);
+  log('info', `\n🏆 ציון: ${total}/100 | תוכן:${score.content} פרסום:${score.publish} Bing:${score.index_bing} Google:${score.index_google} סושיאל:${score.social} ניטור:${score.monitor} Sitemap:${score.sitemap}`);
   log('score', String(total));
 
   return { score: total, breakdown: score, topic: topic.title, date };
@@ -283,8 +339,11 @@ async function updateBlogIndex(topic, slug, date, log) {
       }
     }
 
-    // הוסף מאמר חדש בהתחלה
-    articles.unshift({ title: topic.title, keyword: topic.keyword, slug, date });
+    // הוסף מאמר חדש רק אם ה-slug לא קיים כבר
+    const alreadyExists = articles.some(a => a.slug === slug);
+    if (!alreadyExists) {
+      articles.unshift({ title: topic.title, keyword: topic.keyword, slug, date });
+    }
     // שמור רק 50 האחרונים
     articles = articles.slice(0, 50);
 
