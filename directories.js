@@ -20,9 +20,12 @@ const DIRECTORIES = [
 
 // ping search engine update notification URLs
 const PING_URLS = [
-  `https://www.google.com/ping?sitemap=${cfg.site.url}/sitemap.xml`,
-  `https://www.bing.com/ping?sitemap=${cfg.site.url}/sitemap.xml`,
-  `http://ping.blogs.yam.com/RPC2`,
+  // IndexNow — Bing (פרוטוקול תקני, עובד)
+  `https://www.bing.com/indexnow?url=${encodeURIComponent(cfg.site.url)}&key=pixel2024seo`,
+  // Yandex IndexNow
+  `https://yandex.com/indexnow?url=${encodeURIComponent(cfg.site.url)}&key=pixel2024seo`,
+  // Sitemap ping — Seznam (עדיין תומך)
+  `https://search.seznam.cz/ping?sitemap=${encodeURIComponent(cfg.site.url + '/sitemap.xml')}`,
 ];
 
 async function pingDirectories(log) {
