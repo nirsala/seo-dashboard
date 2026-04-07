@@ -188,11 +188,9 @@ async function runSEO(site, log, apiKey) {
   if (articleHtml) {
     log('info', `🚀 שלב 3/6: מפרסם ל-GitHub...`);
     try {
-      articleSlug = topic.title
-        .replace(/[^א-תa-zA-Z0-9\s]/g, '')
-        .trim()
-        .replace(/\s+/g, '-')
-        .slice(0, 60);
+      // slug באנגלית בלבד — מונע URL שבור עם עברית
+      const kwIndex = KEYWORDS.indexOf(topic.keyword);
+      articleSlug = `led-article-${kwIndex >= 0 ? kwIndex : 0}-${date}`;
 
       const fullHtml = buildArticlePage(topic, articleHtml, date, articleSlug);
       const result = await publishFile(`blog/${articleSlug}.html`, fullHtml, `seo: ${topic.title}`);
