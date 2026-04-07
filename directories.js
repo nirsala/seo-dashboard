@@ -24,8 +24,8 @@ const PING_URLS = [
   `https://www.bing.com/indexnow?url=${encodeURIComponent(cfg.site.url)}&key=pixel2024seo`,
   // Yandex IndexNow
   `https://yandex.com/indexnow?url=${encodeURIComponent(cfg.site.url)}&key=pixel2024seo`,
-  // Sitemap ping — Seznam (עדיין תומך)
-  `https://search.seznam.cz/ping?sitemap=${encodeURIComponent(cfg.site.url + '/sitemap.xml')}`,
+  // Seznam IndexNow (הצטרפו לפרוטוקול IndexNow)
+  `https://api.indexnow.org/indexnow?url=${encodeURIComponent(cfg.site.url)}&key=pixel2024seo`,
 ];
 
 async function pingDirectories(log) {
