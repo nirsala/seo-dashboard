@@ -6,6 +6,7 @@ const { postToSocial } = require('./social');
 const { pingDirectories } = require('./directories');
 const { checkUptime } = require('./monitor');
 const { publishFile, buildArticlePage, buildBlogIndex } = require('./github-publisher');
+const { buildBacklinks } = require('./backlinks');
 
 // מאגר מילות מפתח — המערכת תייצר כותרת חדשה לכל אחת בכל הרצה
 const KEYWORDS = [
@@ -103,7 +104,7 @@ async function generateTitle(keyword, apiKey) {
 }
 
 async function runSEO(site, log, apiKey) {
-  const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0, sitemap: 0 };
+  const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0, sitemap: 0, backlinks: 0 };
   const date = new Date().toISOString().split('T')[0];
   const keyword = pickKeyword();
   log('info', `🔑 מילת מפתח: "${keyword}" — מייצר כותרת...`);
@@ -301,8 +302,16 @@ ${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><p
     score.monitor += 5;
   } catch(e) { log('warn', `⚠️ ${e.message}`); }
 
-  // ── שלב 6: רשתות חברתיות ────────────────────
-  log('info', `📱 שלב 6/6: מפרסם ברשתות חברתיות...`);
+  // ── שלב 6: בניית קישורים חיצוניים ──────────
+  log('info', `🔗 שלב 6/7: בונה קישורים חיצוניים (Medium, Dev.to, Hashnode)...`);
+  try {
+    const articleUrl = articleSlug ? `${siteUrl}/blog/${articleSlug}.html` : siteUrl;
+    const blResults = await buildBacklinks(topic, articleUrl, log);
+    score.backlinks = blResults.length * 5; // 5 נקודות לכל פלטפורמה מוצלחת
+  } catch(e) { log('error', `❌ Backlinks: ${e.message}`); }
+
+  // ── שלב 7: רשתות חברתיות ────────────────────
+  log('info', `📱 שלב 7/7: מפרסם ברשתות חברתיות...`);
   try {
     const articleUrl = articleSlug ? `${siteUrl}/blog/${articleSlug}.html` : siteUrl;
     const socialRes = await postToSocial(topic.title, articleUrl);
@@ -312,7 +321,7 @@ ${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><p
   } catch(e) { log('error', `❌ רשתות: ${e.message}`); }
 
   const total = Object.values(score).reduce((a, b) => a + b, 0);
-  log('info', `\n🏆 ציון: ${total}/100 | תוכן:${score.content} פרסום:${score.publish} Bing:${score.index_bing} Google:${score.index_google} סושיאל:${score.social} ניטור:${score.monitor} Sitemap:${score.sitemap}`);
+  log('info', `\n🏆 ציון: ${total}/100 | תוכן:${score.content} פרסום:${score.publish} Bing:${score.index_bing} Google:${score.index_google} סושיאל:${score.social} ניטור:${score.monitor} Sitemap:${score.sitemap} Backlinks:${score.backlinks}`);
   log('score', String(total));
 
   return { score: total, breakdown: score, topic: topic.title, date };
