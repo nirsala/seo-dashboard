@@ -3,6 +3,7 @@
 //  Facebook, Instagram, LinkedIn — Hebrew
 // ═══════════════════════════════════════════
 const cfg = require('./config');
+const { getArticleImage } = require('./article-images');
 
 const CAPTIONS = [
   `💡 מסכי LED מקצועיים לעסק שלך — חנויות, מסעדות, לובי ועוד.\nPixel by Keshet — הפתרון המושלם לשילוט דיגיטלי.\n📞 *9555\n#מסכיLED #שילוטדיגיטלי #עסקים`,
@@ -14,15 +15,6 @@ const CAPTIONS = [
   `🎯 רוצה לבלוט מהמתחרים? מסך LED זה התשובה.\nצבע, תנועה, מסר — מושכים לקוחות.\n📞 *9555\n#שילוטדיגיטלי #מסכיLED #שיווק`,
 ];
 
-// תמונות מהאתר עצמו
-const SITE_IMAGES = [
-  `${cfg.site.url}/assets/images/portfolio-w2.jpg`,
-  `${cfg.site.url}/assets/images/portfolio-w3.jpg`,
-  `${cfg.site.url}/assets/images/portfolio-w4.jpg`,
-  `${cfg.site.url}/assets/images/portfolio-w5.jpg`,
-  `${cfg.site.url}/assets/images/portfolio-w6.jpg`,
-  `${cfg.site.url}/assets/images/portfolio-w7.jpg`,
-];
 
 async function postToSocial(topic, articleUrl) {
   if (!cfg.ayrshareApiKey) {
@@ -32,7 +24,8 @@ async function postToSocial(topic, articleUrl) {
 
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   const caption = CAPTIONS[dayOfYear % CAPTIONS.length];
-  const imageUrl = SITE_IMAGES[dayOfYear % SITE_IMAGES.length];
+  // תמונה מותאמת לנושא המאמר
+  const imageUrl = getArticleImage(topic, articleUrl);
 
   const postText = topic
     ? `📝 מאמר חדש: ${topic}\n\n${caption}\n\n👉 קרא עוד: ${articleUrl}`

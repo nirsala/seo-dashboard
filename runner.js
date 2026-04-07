@@ -7,6 +7,7 @@ const { pingDirectories } = require('./directories');
 const { checkUptime } = require('./monitor');
 const { publishFile, buildArticlePage, buildBlogIndex } = require('./github-publisher');
 const { buildBacklinks } = require('./backlinks');
+const { generateDailyReport } = require('./rankings-report');
 
 // מאגר מילות מפתח — המערכת תייצר כותרת חדשה לכל אחת בכל הרצה
 const KEYWORDS = [
@@ -336,6 +337,11 @@ ${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><p
     else if (socialRes.skipped) { log('warn', `⚠️ הוסף AYRSHARE_API_KEY לפרסום ברשתות`); }
     else                   { log('error', `❌ רשתות: ${socialRes.error}`); }
   } catch(e) { log('error', `❌ רשתות: ${e.message}`); }
+
+  // ── דוח מיקומים יומי ────────────────────────
+  try {
+    await generateDailyReport(log);
+  } catch(e) { log('warn', `⚠️ דוח מיקומים: ${e.message}`); }
 
   const total = Object.values(score).reduce((a, b) => a + b, 0);
   log('info', `\n🏆 ציון: ${total}/100 | תוכן:${score.content} פרסום:${score.publish} Bing:${score.index_bing} Google:${score.index_google} סושיאל:${score.social} ניטור:${score.monitor} Sitemap:${score.sitemap} Backlinks:${score.backlinks}`);

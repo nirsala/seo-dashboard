@@ -109,6 +109,96 @@ async function postToHashnode(title, contentMarkdown, tags) {
   }
 }
 
+// ── Telegraph (telegra.ph) — ללא רישום ────────
+// יוצר דף ציבורי שגוגל מאנדקס, ללא חשבון
+async function postToTelegraph(title, bodyHtml, articleUrl) {
+  try {
+    // שלב 1: צור account אנונימי (token חד-פעמי)
+    const accRes = await fetch('https://api.telegra.ph/createAccount', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ short_name: 'PixelKeshet', author_name: SITE_NAME, author_url: SITE_URL })
+    });
+    const acc = await accRes.json();
+    if (!acc.ok) return { ok: false, platform: 'Telegraph', error: acc.error };
+    const accessToken = acc.result.access_token;
+
+    // שלב 2: פרסם דף
+    const content = [
+      { tag: 'h3', children: [title] },
+      { tag: 'p', children: [`מאמר מקצועי מאת `, { tag: 'a', attrs: { href: SITE_URL }, children: [SITE_NAME] }, ` — מומחים למסכי LED ושילוט דיגיטלי בישראל.` ] },
+      { tag: 'p', children: [articleUrl ? { tag: 'a', attrs: { href: articleUrl }, children: [`📖 קראו את המאמר המלא`] } : ''] },
+      { tag: 'p', children: [`${SITE_NAME} מספקים פתרונות שילוט דיגיטלי לעסקים בכל הארץ — חנויות, מסעדות, מלונות ועוד.`] },
+      { tag: 'p', children: [`📞 *9555 | 🌐 `, { tag: 'a', attrs: { href: SITE_URL }, children: [SITE_URL] }] },
+    ];
+
+    const pageRes = await fetch('https://api.telegra.ph/createPage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: accessToken, title, content, return_content: false })
+    });
+    const page = await pageRes.json();
+    if (page.ok) return { ok: true, platform: 'Telegraph', url: `https://telegra.ph${page.result.path}` };
+    return { ok: false, platform: 'Telegraph', error: page.error };
+  } catch(e) {
+    return { ok: false, platform: 'Telegraph', error: e.message };
+  }
+}
+
+// ── Write.as — ללא רישום ──────────────────────
+// פוסטים אנונימיים פומביים עם קישורים
+async function postToWriteAs(title, bodyMarkdown) {
+  try {
+    const res = await fetch('https://write.as/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: `# ${title}\n\n${bodyMarkdown}`, title, lang: 'he', appearance: 'norm' })
+    });
+    const data = await res.json();
+    if (data.data?.id) return { ok: true, platform: 'Write.as', url: `https://write.as/${data.data.id}` };
+    return { ok: false, platform: 'Write.as', error: JSON.stringify(data.error || data) };
+  } catch(e) {
+    return { ok: false, platform: 'Write.as', error: e.message };
+  }
+}
+
+// ── Ping-o-Matic XML-RPC — ללא רישום ─────────
+// שולח פינג לעשרות מנועי חיפוש ואינדקסים בבת אחת
+async function pingOmatic(title, siteUrl) {
+  const xmlBody = `<?xml version="1.0"?>
+<methodCall>
+  <methodName>weblogUpdates.extendedPing</methodName>
+  <params>
+    <param><value><string>${SITE_NAME}</string></value></param>
+    <param><value><string>${siteUrl}</string></value></param>
+    <param><value><string>${siteUrl}</string></value></param>
+    <param><value><string>${siteUrl}/sitemap.xml</string></value></param>
+  </params>
+</methodCall>`;
+
+  const endpoints = [
+    'https://rpc.pingomatic.com/',
+    'https://ping.feedburner.com/',
+  ];
+
+  const results = [];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/xml' },
+        body: xmlBody,
+        signal: AbortSignal.timeout(8000)
+      });
+      results.push({ ep, status: res.status });
+    } catch(e) {
+      results.push({ ep, error: e.message });
+    }
+  }
+  const success = results.filter(r => r.status < 400).length;
+  return { ok: success > 0, platform: 'Ping services', count: success, total: endpoints.length };
+}
+
 // ── בנה תוכן לפרסום ─────────────────────────
 function buildBacklinkContent(topic, articleUrl, apiKey) {
   const intro = `${topic.title} — מאמר מקצועי מאת ${SITE_NAME}.`;
@@ -150,6 +240,22 @@ async function buildBacklinks(topic, articleUrl, log) {
   const { markdown, html, tags } = buildBacklinkContent(topic, articleUrl);
   const results = [];
 
+  // ── ללא רישום (תמיד פועל) ──
+  log('info', `🔗 Backlinks ללא רישום: Telegraph, Write.as, Ping services...`);
+  const [telegraph, writeas, ping] = await Promise.all([
+    postToTelegraph(topic.title, html, articleUrl),
+    postToWriteAs(topic.title, markdown),
+    pingOmatic(topic.title, articleUrl || SITE_URL),
+  ]);
+
+  for (const r of [telegraph, writeas]) {
+    if (r.ok) { log('success', `✅ Backlink ${r.platform}: ${r.url}`); results.push(r); }
+    else       { log('warn',    `⚠️ Backlink ${r.platform}: ${r.error}`); }
+  }
+  if (ping.ok) log('success', `✅ Ping services: ${ping.count}/${ping.total} הצליחו`);
+  else         log('warn',    `⚠️ Ping services: לא הגיבו`);
+
+  // ── עם API key (אופציונלי) ──
   const [medium, devto, hashnode] = await Promise.all([
     postToMedium(topic.title, html, tags),
     postToDevTo(topic.title, markdown, tags),

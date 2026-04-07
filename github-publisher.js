@@ -49,30 +49,10 @@ async function publishFile(filePath, content, commitMsg) {
   }
 }
 
-// מפה מילות מפתח לתמונות Unsplash רלוונטיות (photo ID)
-const KEYWORD_IMAGES = [
-  { match: ['מסעד', 'תפריט', 'מזון', 'סופרמרקט'],   id: 'photo-1414235077428-338989a2e8c0' }, // restaurant/food
-  { match: ['מלון', 'לובי', 'אורחים'],               id: 'photo-1566073771259-6a8506099945' }, // hotel lobby
-  { match: ['ספורט', 'אצטדיון', 'כושר'],             id: 'photo-1540747913346-19212a4b32a6' }, // sports arena
-  { match: ['חוצות', 'שלט', 'billboard'],            id: 'photo-1558618666-fcd25c85cd64' }, // billboard outdoor
-  { match: ['בריכה', 'חיצוני', 'IP65', 'IP67'],      id: 'photo-1519315901367-f34ff9154487' }, // outdoor LED
-  { match: ['חינוך', 'בית ספר', 'מוסד'],             id: 'photo-1580582932707-520aed937b7b' }, // classroom screen
-  { match: ['בנק', 'קליניק', 'בית חולים', 'בריאות'], id: 'photo-1587351021759-3e566b6af7cc' }, // professional display
-  { match: ['קניון', 'רשת', 'חנות', 'ויטרינה'],      id: 'photo-1441984904996-e0b6ba687e04' }, // retail store
-  { match: ['אירוע', 'אולם', 'שמחות'],               id: 'photo-1492684223066-81342ee5ff30' }, // event hall
-  { match: ['pixel pitch', 'רזולוציה', 'CMS', 'ניהול'], id: 'photo-1518770660439-4636190af475' }, // tech/tech screen
-  { match: ['תחנת דלק', 'תחנה'],                     id: 'photo-1568605117036-5fe5e7bab0b7' }, // gas station
-];
+const { getArticleImage } = require('./article-images');
 
-function pickArticleImage(keyword) {
-  const kw = (keyword || '').toLowerCase();
-  for (const item of KEYWORD_IMAGES) {
-    if (item.match.some(m => kw.includes(m.toLowerCase()))) {
-      return `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=1200&q=80`;
-    }
-  }
-  // ברירת מחדל — מסך LED עסקי
-  return `https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=1200&q=80`;
+function pickArticleImage(keyword, title) {
+  return getArticleImage(keyword, title);
 }
 
 // בנה דף מאמר HTML מלא עם עיצוב
