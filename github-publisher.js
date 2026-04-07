@@ -78,27 +78,76 @@ function pickArticleImage(keyword) {
 // בנה דף מאמר HTML מלא עם עיצוב
 function buildArticlePage(topic, articleHtml, date, slug) {
   const heroImage = pickArticleImage(topic.keyword || topic.title);
+  const year = new Date(date).getFullYear();
+  // כותרת meta עם שנה — משפר CTR
+  const metaTitle = `${topic.title} (${year}) | Pixel by Keshet`;
+  const metaDesc = `${topic.keyword} — מדריך מקצועי ${year} מבית Pixel by Keshet. שילוט דיגיטלי ומסכי LED לעסקים בישראל. ✓ ניסיון של שנים ✓ פרויקטים בכל הארץ`;
+
+  // Schema — Article + BreadcrumbList + LocalBusiness
+  const schema = JSON.stringify([
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": topic.title.replace(/"/g,"'"),
+      "datePublished": date,
+      "dateModified": date,
+      "author": {
+        "@type": "Person",
+        "name": "צוות Pixel by Keshet",
+        "url": SITE_URL
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Pixel by Keshet",
+        "logo": { "@type": "ImageObject", "url": `${SITE_URL}/assets/logo/pixel-logo-transparent.png` }
+      },
+      "image": heroImage,
+      "url": `${SITE_URL}/blog/${slug}.html`,
+      "inLanguage": "he",
+      "about": { "@type": "Thing", "name": topic.keyword },
+      "mainEntityOfPage": `${SITE_URL}/blog/${slug}.html`
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "בית", "item": SITE_URL },
+        { "@type": "ListItem", "position": 2, "name": "בלוג", "item": `${SITE_URL}/blog/` },
+        { "@type": "ListItem", "position": 3, "name": topic.title, "item": `${SITE_URL}/blog/${slug}.html` }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Pixel by Keshet",
+      "url": SITE_URL,
+      "telephone": "*9555",
+      "address": { "@type": "PostalAddress", "addressCountry": "IL" },
+      "description": "מומחים למסכי LED ושילוט דיגיטלי לעסקים בישראל",
+      "priceRange": "$$",
+      "sameAs": [`${SITE_URL}`]
+    }
+  ]);
+
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${topic.title} | Pixel by Keshet</title>
-<meta name="description" content="${topic.keyword} — מידע מקצועי מבית Pixel by Keshet. שילוט דיגיטלי ומסכי LED לעסקים."/>
+<title>${metaTitle}</title>
+<meta name="description" content="${metaDesc}"/>
 <meta name="keywords" content="${topic.keyword}, מסכי LED לעסקים, שילוט דיגיטלי, Pixel by Keshet"/>
 <meta property="og:type" content="article"/>
 <meta property="og:url" content="${SITE_URL}/blog/${slug}.html"/>
 <meta property="og:title" content="${topic.title}"/>
-<meta property="og:description" content="${topic.keyword} — מידע מקצועי מבית Pixel by Keshet"/>
+<meta property="og:description" content="${metaDesc}"/>
 <meta property="og:image" content="${heroImage}"/>
 <meta property="og:locale" content="he_IL"/>
 <meta property="og:site_name" content="Pixel by Keshet"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <link rel="canonical" href="${SITE_URL}/blog/${slug}.html"/>
 <link rel="icon" href="/favicon.ico"/>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Article","headline":"${topic.title.replace(/"/g,"'")}","datePublished":"${date}","dateModified":"${date}","author":{"@type":"Organization","name":"Pixel by Keshet"},"publisher":{"@type":"Organization","name":"Pixel by Keshet","logo":{"@type":"ImageObject","url":"${SITE_URL}/assets/logo/pixel-logo-transparent.png"}},"url":"${SITE_URL}/blog/${slug}.html","inLanguage":"he"}
-</script>
+<script type="application/ld+json">${schema}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap" rel="stylesheet"/>
 <style>
@@ -150,8 +199,14 @@ article a:hover{text-decoration:underline}
 .btn:hover{box-shadow:0 0 18px rgba(215,29,67,.55)}
 .btn-outline{background:transparent;border:1px solid rgba(215,29,67,.4);color:rgba(255,255,255,.7)}
 .btn-outline:hover{border-color:#d71d43;color:#fff}
+/* ── AUTHOR BIO (E-E-A-T) ── */
+.author-box{display:flex;gap:20px;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:24px;margin-top:40px}
+.author-avatar{width:52px;height:52px;min-width:52px;background:#d71d43;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;letter-spacing:1px;color:#fff}
+.author-name{font-size:15px;font-weight:800;margin-bottom:6px}
+.author-desc{font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:10px}
+.author-links a{font-size:12px;color:#d71d43}
 /* ── RELATED ── */
-.related{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:24px;margin-top:40px}
+.related{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:24px;margin-top:16px}
 .related h4{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:14px;text-transform:uppercase;letter-spacing:2px}
 .related-links{display:flex;flex-wrap:wrap;gap:8px}
 .related-links a{padding:7px 16px;border:1px solid rgba(215,29,67,.2);border-radius:20px;font-size:13px;color:rgba(255,255,255,.65);transition:all .2s}
@@ -242,6 +297,21 @@ footer{background:#222;border-top:1px solid rgba(255,255,255,.07);padding:56px 5
     </div>
   </div>
 
+  <!-- ══ AUTHOR BIO (E-E-A-T) ══ -->
+  <div class="author-box">
+    <div class="author-avatar">PK</div>
+    <div class="author-info">
+      <div class="author-name">צוות Pixel by Keshet</div>
+      <div class="author-desc">מומחים למסכי LED ושילוט דיגיטלי עם ניסיון של שנים בשוק הישראלי. אנחנו מלווים עסקים מכל הסקטורים — מחנויות קמעונאיות, מסעדות, מלונות, ועד רשתות ארציות. כל הפתרונות שלנו מותאמים אישית לצרכי העסק.</div>
+      <div class="author-links">
+        <a href="${SITE_URL}">xvision.co.il</a> &nbsp;|&nbsp;
+        <a href="tel:*9555">*9555</a> &nbsp;|&nbsp;
+        <a href="https://wa.me/972559732343">WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INTERNAL LINKS ══ -->
   <div class="related">
     <h4>קרא גם</h4>
     <div class="related-links">
@@ -249,7 +319,7 @@ footer{background:#222;border-top:1px solid rgba(255,255,255,.07);padding:56px 5
       <a href="/products.html">קטלוג מוצרים</a>
       <a href="/pool.html">מסכי LED לבריכה</a>
       <a href="/cms.html">מערכת ניהול תוכן</a>
-      <a href="/blog/">כל המאמרים</a>
+      <a href="/blog/">כל המאמרים בבלוג</a>
     </div>
   </div>
 </article>

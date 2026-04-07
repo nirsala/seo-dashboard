@@ -158,13 +158,19 @@ async function runSEO(site, log, apiKey) {
 4. TRUSTWORTHINESS: כלול נתונים, השוואות, יתרונות וחסרונות — לא רק שיווק
 
 ===== מבנה חובה =====
-- <h1> אחד בדיוק עם מילת המפתח
-- 3-4 כותרות <h2> שמכסות כוונות חיפוש שונות
-- כותרת אחת <h2> בפורמט שאלה (לדוגמה: "מתי כדאי לבחור מסך LED X?")
+- <h1> אחד בדיוק עם מילת המפתח + שנה (${date.slice(0,4)})
+- 4-5 כותרות <h2> שמכסות כוונות חיפוש שונות — לפחות אחת עם מספר ("5 סיבות...", "3 דברים שחשוב לדעת...")
+- כותרת אחת <h2> בפורמט שאלה ("האם...?", "מתי כדאי...?", "כמה עולה...?")
 - פסקת מסקנה עם CTA עדין
-- 800-1000 מילים
-- קישור פנימי אחד: <a href="/products.html">קטלוג המוצרים שלנו</a> או <a href="/#contact">קבל הצעת מחיר</a>
+- 900-1200 מילים
+- 3 קישורים פנימיים מגוונים:
+  <a href="/products.html">קטלוג המוצרים שלנו</a>
+  <a href="/pool.html">מסכי LED לבריכה</a>
+  <a href="/cms.html">מערכת ניהול תוכן</a>
+  <a href="/#contact">קבל הצעת מחיר</a>
+  (בחר 3 מהרשימה הנ"ל שמתאימים להקשר)
 - אזכור "Pixel by Keshet" ו-"xvision.co.il" פעם אחת כל אחד
+- לפחות רשימה אחת <ul> עם 4-6 פריטים
 
 ===== FAQ Schema בסוף =====
 הוסף בסיום:
@@ -242,7 +248,7 @@ async function runSEO(site, log, apiKey) {
     log('success', `✅ Bing IndexNow: ${bingRes.status}`);
   } catch(e) { log('error', `❌ Bing: ${e.message}`); }
 
-  // Google IndexNow
+  // Google IndexNow + Search Console
   try {
     const googleBody = {
       host: new URL(siteUrl).hostname,
@@ -255,6 +261,17 @@ async function runSEO(site, log, apiKey) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(googleBody)
     });
+    // Google Search Console — Indexing API (דורש GOOGLE_INDEXING_KEY)
+    const gscKey = process.env.GOOGLE_INDEXING_KEY || '';
+    if (gscKey && articleSlug) {
+      const articleFullUrl = `${siteUrl}/blog/${articleSlug}.html`;
+      await fetch(`https://indexing.googleapis.com/v3/urlNotifications:publish?key=${gscKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: articleFullUrl, type: 'URL_UPDATED' })
+      });
+      log('success', `✅ Google Search Console Indexing API: נשלח`);
+    }
     score.index_google = gRes.status < 400 ? 15 : 5;
     log('success', `✅ Google IndexNow: ${gRes.status}`);
   } catch(e) { log('warn', `⚠️ Google IndexNow: ${e.message}`); }
