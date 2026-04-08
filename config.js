@@ -13,9 +13,6 @@ const config = {
   // דפים לבדיקת זמינות
   pages: [
     '',
-    '/products.html',
-    '/pool.html',
-    '/cms.html',
     '/blog/',
   ],
 
