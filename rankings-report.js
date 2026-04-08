@@ -1,14 +1,50 @@
 // ═══════════════════════════════════════════
 //  DAILY RANKINGS REPORT
 //  דוח יומי מיקומים בגוגל ישראל
-//  מקור: Google Search Console API
+//  מקור: Google Search Console API (Service Account)
 // ═══════════════════════════════════════════
-const cfg = require('./config');
+const cfg    = require('./config');
+const crypto = require('crypto');
 
-const SITE_URL   = cfg.site.url || 'https://xvision.co.il';
-const GSC_KEY    = process.env.GOOGLE_SEARCH_CONSOLE_KEY || '';
-const RESEND_KEY = process.env.RESEND_API_KEY || '';
-const REPORT_EMAIL = process.env.REPORT_EMAIL || 'nirsala@gmail.com';
+const SITE_URL     = cfg.site.url || 'https://xvision.co.il';
+const RESEND_KEY   = process.env.RESEND_API_KEY   || '';
+const REPORT_EMAIL = process.env.REPORT_EMAIL     || 'nirsala@gmail.com';
+
+// GOOGLE_SERVICE_ACCOUNT_JSON = תוכן קובץ ה-JSON של Service Account
+function getServiceAccount() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '';
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// JWT + OAuth2 לאימות מול Google API
+function buildJwt(sa) {
+  const header  = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+  const now     = Math.floor(Date.now() / 1000);
+  const payload = Buffer.from(JSON.stringify({
+    iss:   sa.client_email,
+    scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+    aud:   'https://oauth2.googleapis.com/token',
+    iat:   now,
+    exp:   now + 3600,
+  })).toString('base64url');
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(`${header}.${payload}`);
+  const sig = sign.sign(sa.private_key, 'base64url');
+  return `${header}.${payload}.${sig}`;
+}
+
+async function getAccessToken(sa) {
+  const jwt = buildJwt(sa);
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error(`OAuth: ${JSON.stringify(data)}`);
+  return data.access_token;
+}
 
 // מילות מפתח לניטור
 const TRACKED_KEYWORDS = [
@@ -30,40 +66,31 @@ const TRACKED_KEYWORDS = [
 ];
 
 async function fetchSearchConsoleData(startDate, endDate) {
-  if (!GSC_KEY) return null;
+  const sa = getServiceAccount();
+  if (!sa) return null;
+
+  let token;
+  try { token = await getAccessToken(sa); } catch(e) { return { error: e.message }; }
 
   const siteEncoded = encodeURIComponent(SITE_URL);
-  const url = `https://searchconsole.googleapis.com/webmasters/v3/sites/${siteEncoded}/searchAnalytics/query?key=${GSC_KEY}`;
+  const url = `https://searchconsole.googleapis.com/webmasters/v3/sites/${siteEncoded}/searchAnalytics/query`;
 
   const body = {
-    startDate,
-    endDate,
+    startDate, endDate,
     dimensions: ['query', 'country'],
-    dimensionFilterGroups: [{
-      filters: [{
-        dimension: 'country',
-        operator: 'equals',
-        expression: 'isr'
-      }]
-    }],
-    rowLimit: 100,
-    startRow: 0
+    dimensionFilterGroups: [{ filters: [{ dimension: 'country', operator: 'equals', expression: 'isr' }] }],
+    rowLimit: 100, startRow: 0,
   };
 
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
     });
-    if (!res.ok) {
-      const err = await res.text();
-      return { error: `GSC API: ${res.status} — ${err.slice(0, 200)}` };
-    }
+    if (!res.ok) { const err = await res.text(); return { error: `GSC API: ${res.status} — ${err.slice(0, 200)}` }; }
     return await res.json();
-  } catch(e) {
-    return { error: e.message };
-  }
+  } catch(e) { return { error: e.message }; }
 }
 
 function buildReportHtml(rows, date, prevRows) {
@@ -175,8 +202,8 @@ async function generateDailyReport(log) {
   const prev7 = new Date(today - 7 * 86400000).toISOString().split('T')[0];
   const prev14 = new Date(today - 14 * 86400000).toISOString().split('T')[0];
 
-  if (!GSC_KEY) {
-    log('warn', `⚠️ דוח מיקומים: הוסף GOOGLE_SEARCH_CONSOLE_KEY ב-Render`);
+  if (!getServiceAccount()) {
+    log('warn', `⚠️ דוח מיקומים: הוסף GOOGLE_SERVICE_ACCOUNT_JSON ב-Render`);
     return { skipped: true };
   }
 
