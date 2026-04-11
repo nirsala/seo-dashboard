@@ -1,93 +1,78 @@
 // ═══════════════════════════════════════════
-//  ARTICLE IMAGES — מיפוי מדויק מילת מפתח → תמונה
-//  כל מילת מפתח מקבלת תמונה ספציפית לנושא
+//  ARTICLE IMAGES — תמונות מהאתר xvision.co.il בלבד
 // ═══════════════════════════════════════════
 
-// מיפוי ישיר מילת מפתח מדויקת → photo ID ב-Unsplash
-const EXACT_MAP = {
-  'מסכי LED לחנויות':          'photo-1441984904996-e0b6ba687e04', // חנות קמעונאית עם תצוגות
-  'שילוט דיגיטלי למסעדות':    'photo-1414235077428-338989a2e8c0', // מסעדה מואר
-  'תפריט דיגיטלי למסעדה':     'photo-1414235077428-338989a2e8c0', // מסעדה
-  'מסכי LED חיצוניים':         'photo-1558618666-fcd25c85cd64', // שלט חוצות LED
-  'CMS למסכי LED':             'photo-1518770660439-4636190af475', // מסך ניהול תוכן
-  'מסכי LED לובי':             'photo-1566073771259-6a8506099945', // לובי מלון מפואר
-  'מסכי LED לבריכה':           'photo-1519315901367-f34ff9154487', // בריכה עם מסך
-  'מחיר מסך LED לעסק':        'photo-1560472354-b33ff0c44a43', // עסק עם תצוגה
-  'מסכי LED מלונות':           'photo-1551882547-ff40c63fe5fa', // מלון יוקרה
-  'מסכי LED למלונות':          'photo-1551882547-ff40c63fe5fa', // מלון
-  'שילוט דיגיטלי רשתות':      'photo-1441984904996-e0b6ba687e04', // רשת חנויות
-  'מסכי LED תל אביב':          'photo-1548407260-da850faa41e3', // עיר מודרנית
-  'מסכי LED ירושלים':          'photo-1548407260-da850faa41e3', // עיר
-  'מסכי LED חיפה':             'photo-1548407260-da850faa41e3', // עיר
-  'מסכי LED פתח תקווה':        'photo-1560472354-b33ff0c44a43', // עסק עירוני
-  'מסכי LED רמת גן':           'photo-1560472354-b33ff0c44a43', // עסק עירוני
-  'תחזוקת מסכי LED':           'photo-1581092918056-0c4c3acd3789', // טכנאי עם ציוד
-  'השוואת מסכי LED':           'photo-1518770660439-4636190af475', // מספר מסכים
-  'שלטי חוצות דיגיטליים':     'photo-1558618666-fcd25c85cd64', // שלט חוצות
-  'היתר שלט חוצות':            'photo-1558618666-fcd25c85cd64', // שלט חוצות
-  'מסכי LED חינוך':            'photo-1580582932707-520aed937b7b', // כיתה עם מסך
-  'שילוט דיגיטלי בנקים':      'photo-1486406146926-c627a92ad1ab', // בנק מקצועי
-  'מסכי LED ספורט':            'photo-1540747913346-19212a4b32a6', // אצטדיון
-  'מסכי LED חדר כושר':         'photo-1534438327276-14e5300c3a48', // חדר כושר
-  'שילוט דיגיטלי בריאות':     'photo-1587351021759-3e566b6af7cc', // בית חולים
-  'מסכי LED אירועים':          'photo-1492684223066-81342ee5ff30', // אולם אירועים
-  'מסכי LED לאולמות אירועים':  'photo-1492684223066-81342ee5ff30', // אולם
-  'תצוגות ויטרינה LED':        'photo-1555529669-e69e7aa0ba9a', // ויטרינת חנות
-  'IP65 מסכי LED':             'photo-1519315901367-f34ff9154487', // חיצוני עמיד
-  'pixel pitch LED':            'photo-1518770660439-4636190af475', // תצוגה טכנית
-  'מסכי LED סופרמרקט':         'photo-1534723452862-4c874986ebad', // סופרמרקט
-  'שלטים דיגיטליים לעסקים':   'photo-1441984904996-e0b6ba687e04', // עסק
+const BASE = 'https://xvision.co.il';
+
+// תמונות שירותים
+const SVC = {
+  indoor:   `${BASE}/assets/images/services/svc-indoor.jpg`,
+  outdoor:  `${BASE}/assets/images/services/svc-outdoor.jpg`,
+  cms:      `${BASE}/assets/images/services/svc-cms.jpg`,
+  install:  `${BASE}/assets/images/services/svc-install.jpg`,
+  support:  `${BASE}/assets/images/services/svc-support.jpg`,
+  content:  `${BASE}/assets/images/services/svc-content.jpg`,
+  hero:     `${BASE}/assets/images/hero-bg.jpg`,
 };
 
-// מיפוי לפי קטגוריה (fallback)
-const CATEGORY_MAP = [
-  { words: ['מסעד', 'תפריט', 'אוכל', 'קפה'],           id: 'photo-1414235077428-338989a2e8c0' },
-  { words: ['מלון', 'לובי', 'אורחים', 'קבלה'],          id: 'photo-1566073771259-6a8506099945' },
-  { words: ['ספורט', 'אצטדיון', 'כושר', 'פיטנס', 'גים'], id: 'photo-1540747913346-19212a4b32a6' },
-  { words: ['חוצות', 'שלט', 'ביליבורד', 'billboard'],   id: 'photo-1558618666-fcd25c85cd64' },
-  { words: ['בריכה', 'IP65', 'IP67', 'עמיד', 'חיצוני'], id: 'photo-1519315901367-f34ff9154487' },
-  { words: ['חינוך', 'בית ספר', 'כיתה', 'אוניברסיטה'], id: 'photo-1580582932707-520aed937b7b' },
-  { words: ['בנק', 'בית חולים', 'קליניקה', 'בריאות'],   id: 'photo-1486406146926-c627a92ad1ab' },
-  { words: ['חנות', 'קמעונאי', 'רשת', 'מרכז קניות'],    id: 'photo-1441984904996-e0b6ba687e04' },
-  { words: ['אירוע', 'אולם', 'שמחות', 'חתונה'],         id: 'photo-1492684223066-81342ee5ff30' },
-  { words: ['ויטרינה', 'תצוגה', 'חלון', 'display'],      id: 'photo-1555529669-e69e7aa0ba9a' },
-  { words: ['CMS', 'ניהול', 'תוכנה', 'pixel pitch'],     id: 'photo-1518770660439-4636190af475' },
-  { words: ['תחזוק', 'טכנאי', 'תיקון', 'שירות'],        id: 'photo-1581092918056-0c4c3acd3789' },
-  { words: ['סופרמרקט', 'מזון', 'מרכול'],                id: 'photo-1534723452862-4c874986ebad' },
-  { words: ['עיר', 'תל אביב', 'ירושלים', 'חיפה'],       id: 'photo-1548407260-da850faa41e3' },
+// תמונות פרויקטים — סדרה מגוונת
+const WORKS = [
+  `${BASE}/assets/images/works-s01.jpg`,
+  `${BASE}/assets/images/works-s02.jpg`,
+  `${BASE}/assets/images/works-s03.jpg`,
+  `${BASE}/assets/images/works-s04.jpg`,
+  `${BASE}/assets/images/works-s05.jpg`,
+  `${BASE}/assets/images/works-s06.jpg`,
+  `${BASE}/assets/images/works-s07.jpg`,
+  `${BASE}/assets/images/works-s08.jpg`,
+  `${BASE}/assets/images/works-s09.jpg`,
+  `${BASE}/assets/images/works-s10.jpg`,
+  `${BASE}/assets/images/works-g01.jpg`,
+  `${BASE}/assets/images/works-g02.jpg`,
+  `${BASE}/assets/images/works-g03.jpg`,
+  `${BASE}/assets/images/works-g04.jpg`,
+  `${BASE}/assets/images/works-g05.jpg`,
+  `${BASE}/assets/images/works-g06.jpg`,
+  `${BASE}/assets/images/works-g07.jpg`,
+  `${BASE}/assets/images/works-g08.jpg`,
+  `${BASE}/assets/images/works-g09.jpg`,
+  `${BASE}/assets/images/works-g10.jpg`,
 ];
 
-// ברירת מחדל — מסך LED עסקי כללי
-const DEFAULT_ID = 'photo-1611532736597-de2d4265fba3';
+// מיפוי לפי קטגוריה
+const CATEGORY_MAP = [
+  { words: ['חיצוני', 'חוצות', 'שלט', 'ביליבורד', 'IP65', 'IP67', 'outdoor'],  img: SVC.outdoor },
+  { words: ['CMS', 'ניהול', 'תוכן', 'pixel pitch', 'תוכנה'],                   img: SVC.cms     },
+  { words: ['התקנ', 'פרויקט', 'הקמ'],                                           img: SVC.install },
+  { words: ['תחזוק', 'שירות', 'תיקון', 'תמיכה'],                               img: SVC.support },
+  { words: ['לובי', 'מלון', 'קבלה', 'כניסה'],                                  img: SVC.indoor  },
+  { words: ['בריכה', 'ספורט', 'כושר', 'אצטדיון', 'פיטנס'],                    img: SVC.outdoor },
+  { words: ['מסעד', 'תפריט', 'קפה', 'מזון', 'אוכל'],                           img: SVC.indoor  },
+  { words: ['חנות', 'קמעונאי', 'רשת', 'ויטרינה', 'סופרמרקט', 'קניון'],       img: SVC.indoor  },
+  { words: ['בנק', 'בית חולים', 'קליניקה', 'בריאות', 'חינוך', 'כיתה'],        img: SVC.indoor  },
+  { words: ['אירוע', 'אולם', 'שמחות', 'חתונה'],                                img: SVC.content },
+];
+
+// בחר תמונת works לפי keyword (deterministc)
+function pickWork(keyword) {
+  let hash = 0;
+  for (let i = 0; i < keyword.length; i++) hash = ((hash << 5) - hash + keyword.charCodeAt(i)) | 0;
+  return WORKS[Math.abs(hash) % WORKS.length];
+}
 
 function getArticleImage(keyword, title) {
   const text = (keyword || title || '').trim();
-
-  // 1. התאמה מדויקת
-  if (EXACT_MAP[text]) {
-    return buildUrl(EXACT_MAP[text]);
-  }
-
-  // 2. התאמה חלקית למילת מפתח מדויקת
-  for (const [key, id] of Object.entries(EXACT_MAP)) {
-    if (text.includes(key) || key.includes(text)) {
-      return buildUrl(id);
-    }
-  }
-
-  // 3. התאמה לפי קטגוריה
   const lower = text.toLowerCase();
+
+  // התאמה לפי קטגוריה
   for (const cat of CATEGORY_MAP) {
     if (cat.words.some(w => lower.includes(w.toLowerCase()))) {
-      return buildUrl(cat.id);
+      return cat.img;
     }
   }
 
-  return buildUrl(DEFAULT_ID);
-}
-
-function buildUrl(id) {
-  return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=85`;
+  // ברירת מחדל — תמונת פרויקט אמיתית מהאתר
+  return pickWork(text);
 }
 
 module.exports = { getArticleImage };

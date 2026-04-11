@@ -269,4 +269,17 @@ sites.forEach(scheduleSite);
 
 server.listen(PORT, () => {
   console.log(`\n🚀 SEO Dashboard רץ על http://localhost:${PORT}\n`);
+
+  // ── Keep-alive: מונע שינה של Render Free Tier ──
+  // מבצע ping לעצמו כל 10 דקות כדי שהכרון יעבוד
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || process.env.SITE_DASHBOARD_URL || '';
+  if (SELF_URL) {
+    setInterval(() => {
+      fetch(`${SELF_URL}/api/health`).catch(() => {});
+    }, 10 * 60 * 1000); // כל 10 דקות
+    console.log(`[keep-alive] 🔄 ping כל 10 דקות → ${SELF_URL}`);
+  }
 });
+
+// Health check endpoint
+app.get('/api/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
