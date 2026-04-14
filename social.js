@@ -148,15 +148,7 @@ async function postToSocial(topic, articleUrl) {
   else if (gbpResult.ok)  console.log(`[social] ✅ Google Business: פורסם`);
   else                    console.error(`[social] ❌ Google Business: ${gbpResult.error}`);
 
-  // ── LinkedIn ישיר — באנגלית ──
-  const linkedinResult = await postToLinkedIn(topicEn, articleUrl, captionEn);
-  if (linkedinResult.skipped) {
-    console.log(`[social] LinkedIn: ${linkedinResult.reason}`);
-  } else if (linkedinResult.ok) {
-    console.log(`[social] ✅ LinkedIn: ${linkedinResult.url}`);
-  } else {
-    console.error(`[social] ❌ LinkedIn: ${linkedinResult.error}`);
-  }
+  // LinkedIn מטופל דרך Ayrshare למטה (עם Facebook ו-GMB)
 
   if (!cfg.ayrshareApiKey) {
     console.log('[social] אין Ayrshare API Key — מדלג Facebook/Instagram');
@@ -177,7 +169,7 @@ async function postToSocial(topic, articleUrl) {
       },
       body: JSON.stringify({
         post: postText,
-        platforms: ['facebook', 'gmb'],  // LinkedIn מטופל בנפרד (ללא watermark)
+        platforms: ['facebook', 'linkedin', 'gmb'],
         mediaUrls: [imageUrl],
       }),
     });
