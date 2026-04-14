@@ -16,6 +16,34 @@ const CAPTIONS = [
 ];
 
 
+// ── Google Business Profile Post ────────────
+// מפרסם עדכון ישירות בגוגל מפות/גוגל חיפוש מקומי
+// טוקן: console.cloud.google.com → My Business API
+async function postToGoogleBusiness(topic, articleUrl, caption) {
+  const token = process.env.GOOGLE_BUSINESS_TOKEN || '';
+  const locationId = process.env.GOOGLE_BUSINESS_LOCATION_ID || ''; // accounts/XXX/locations/YYY
+  if (!token || !locationId) return { skipped: true, platform: 'Google Business', reason: 'אין GOOGLE_BUSINESS_TOKEN / GOOGLE_BUSINESS_LOCATION_ID' };
+
+  try {
+    const body = {
+      languageCode: 'he',
+      summary: topic ? `${topic}\n\n${caption}` : caption,
+      callToAction: articleUrl ? { actionType: 'LEARN_MORE', url: articleUrl } : undefined,
+      topicType: 'STANDARD',
+    };
+    const res = await fetch(`https://mybusiness.googleapis.com/v4/${locationId}/localPosts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok && data.name) return { ok: true, platform: 'Google Business', url: data.searchUrl || '' };
+    return { ok: false, platform: 'Google Business', error: JSON.stringify(data.error || data) };
+  } catch(e) {
+    return { ok: false, platform: 'Google Business', error: e.message };
+  }
+}
+
 // ── LinkedIn Direct API ──────────────────────
 // token: linkedin.com/developers → My Apps → OAuth 2.0 tools → get token
 // Scopes needed: w_member_social, r_liteprofile
@@ -79,6 +107,12 @@ async function postToSocial(topic, articleUrl) {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   const caption = CAPTIONS[dayOfYear % CAPTIONS.length];
   const imageUrl = getArticleImage(topic, articleUrl);
+
+  // ── Google Business Profile ──
+  const gbpResult = await postToGoogleBusiness(topic, articleUrl, caption);
+  if (gbpResult.skipped) console.log(`[social] Google Business: ${gbpResult.reason}`);
+  else if (gbpResult.ok)  console.log(`[social] ✅ Google Business: פורסם`);
+  else                    console.error(`[social] ❌ Google Business: ${gbpResult.error}`);
 
   // ── LinkedIn ישיר (ללא Ayrshare) ──
   const linkedinResult = await postToLinkedIn(topic, articleUrl, caption);

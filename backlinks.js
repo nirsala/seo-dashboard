@@ -162,8 +162,7 @@ async function postToWriteAs(title, bodyMarkdown) {
   }
 }
 
-// ── Ping-o-Matic XML-RPC — ללא רישום ─────────
-// שולח פינג לעשרות מנועי חיפוש ואינדקסים בבת אחת
+// ── Ping Services — 15+ שירותי אינדוקס ────────
 async function pingOmatic(title, siteUrl) {
   const xmlBody = `<?xml version="1.0"?>
 <methodCall>
@@ -179,6 +178,14 @@ async function pingOmatic(title, siteUrl) {
   const endpoints = [
     'https://rpc.pingomatic.com/',
     'https://ping.feedburner.com/',
+    'https://ping.blo.gs/',
+    'https://rpc.twingly.com/',
+    'https://blogsearch.google.com/ping/RPC2',
+    'https://ping.syndic8.com/xmlrpc.php',
+    'https://www.bloglines.com/ping',
+    'https://api.moreover.com/RPC2',
+    'https://ping.weblogalot.com/rpc.php',
+    'https://rpc.weblogs.com/RPC2',
   ];
 
   const results = [];

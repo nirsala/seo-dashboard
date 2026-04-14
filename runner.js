@@ -8,6 +8,7 @@ const { checkUptime } = require('./monitor');
 const { publishFile, buildArticlePage, buildBlogIndex } = require('./github-publisher');
 const { buildBacklinks } = require('./backlinks');
 const { generateDailyReport } = require('./rankings-report');
+const { generateRssFeed } = require('./rss');
 
 // מאגר מילות מפתח — המערכת תייצר כותרת חדשה לכל אחת בכל הרצה
 const KEYWORDS = [
@@ -340,6 +341,11 @@ ${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><p
     else if (socialRes.skipped) { log('warn', `⚠️ הוסף AYRSHARE_API_KEY לפרסום ברשתות`); }
     else                   { log('error', `❌ רשתות: ${socialRes.error}`); }
   } catch(e) { log('error', `❌ רשתות: ${e.message}`); }
+
+  // ── RSS Feed ─────────────────────────────────
+  try {
+    await generateRssFeed(log);
+  } catch(e) { log('warn', `⚠️ RSS: ${e.message}`); }
 
   // ── דוח מיקומים יומי ────────────────────────
   try {
