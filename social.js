@@ -177,7 +177,7 @@ async function postToSocial(topic, articleUrl) {
       },
       body: JSON.stringify({
         post: postText,
-        platforms: ['facebook', 'instagram', 'linkedin'],
+        platforms: ['facebook'],   // רק Facebook — LinkedIn מטופל בנפרד דרך API ישיר
         mediaUrls: [imageUrl],
       }),
     });
