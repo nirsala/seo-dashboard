@@ -123,6 +123,15 @@ async function runSEO(site, log, apiKey) {
   let articleSlug = '';
   let articleHtml = '';
 
+  // ── שלב 0: פרסום קובץ אימות IndexNow ──────────
+  try {
+    const { publishFile: pub, GITHUB_TOKEN: ghTok } = require('./github-publisher');
+    if (ghTok) {
+      const verifyRes = await pub('pixel2024seo.txt', 'pixel2024seo', 'seo: add IndexNow verification file');
+      if (verifyRes.ok) log('success', `✅ pixel2024seo.txt פורסם`);
+    }
+  } catch(e) { /* לא קריטי */ }
+
   // ── שלב 1: ניטור זמינות ─────────────────────
   log('info', `🌐 שלב 1/6: בודק זמינות אתר...`);
   try {
