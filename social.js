@@ -177,7 +177,7 @@ async function postToSocial(topic, articleUrl) {
       },
       body: JSON.stringify({
         post: postText,
-        platforms: ['facebook'],   // רק Facebook — LinkedIn מטופל בנפרד דרך API ישיר
+        platforms: ['facebook', 'gmb'],  // LinkedIn מטופל בנפרד (ללא watermark)
         mediaUrls: [imageUrl],
       }),
     });
