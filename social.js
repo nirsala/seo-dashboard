@@ -142,17 +142,9 @@ async function postToSocial(topic, articleUrl) {
   const topicEn = topic ? await translateToEnglish(topic) : '';
   const caption  = captionHe; // Facebook/Instagram — עברית
 
-  // ── Google Business Profile ──
-  const gbpResult = await postToGoogleBusiness(topic, articleUrl, caption);
-  if (gbpResult.skipped) console.log(`[social] Google Business: ${gbpResult.reason}`);
-  else if (gbpResult.ok)  console.log(`[social] ✅ Google Business: פורסם`);
-  else                    console.error(`[social] ❌ Google Business: ${gbpResult.error}`);
-
-  // LinkedIn מטופל דרך Ayrshare למטה (עם Facebook ו-GMB)
-
   if (!cfg.ayrshareApiKey) {
-    console.log('[social] אין Ayrshare API Key — מדלג Facebook/Instagram');
-    return linkedinResult.ok ? linkedinResult : { skipped: true };
+    console.log('[social] אין Ayrshare API Key — מדלג');
+    return { skipped: true };
   }
 
   // \u200F = סימן כיוון RTL — מונע ערבוב עברית/אנגלית
@@ -174,7 +166,11 @@ async function postToSocial(topic, articleUrl) {
       }),
     });
     const data = await res.json();
-    console.log('[social] פורסם ברשתות חברתיות:', data.status || 'ok');
+    if (data.status === 'error' || !res.ok) {
+      console.error('[social] ❌ Ayrshare שגיאה:', JSON.stringify(data));
+      return { ok: false, error: JSON.stringify(data) };
+    }
+    console.log('[social] ✅ פורסם ב: Facebook, LinkedIn, Google Business');
     return { ok: true, data };
   } catch(e) {
     console.error('[social] שגיאה:', e.message);
