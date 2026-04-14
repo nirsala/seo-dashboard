@@ -33,8 +33,8 @@ async function postToLinkedIn(topic, articleUrl, caption) {
     const urn = `urn:li:person:${me.sub}`;
 
     const postText = topic
-      ? `📝 מאמר חדש: ${topic}\n\n${caption}\n\n👉 קרא עוד: ${articleUrl}`
-      : caption;
+      ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
+      : `\u200F${caption}`;
 
     const body = {
       author: urn,
@@ -95,9 +95,10 @@ async function postToSocial(topic, articleUrl) {
     return linkedinResult.ok ? linkedinResult : { skipped: true };
   }
 
+  // \u200F = סימן כיוון RTL — מונע ערבוב עברית/אנגלית
   const postText = topic
-    ? `📝 מאמר חדש: ${topic}\n\n${caption}\n\n👉 קרא עוד: ${articleUrl}`
-    : caption;
+    ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
+    : `\u200F${caption}`;
 
   try {
     const res = await fetch('https://app.ayrshare.com/api/post', {
