@@ -5,7 +5,7 @@
 const cfg = require('./config');
 const { getArticleImage } = require('./article-images');
 
-const CAPTIONS = [
+const CAPTIONS_HE = [
   `💡 מסכי LED מקצועיים לעסק שלך — חנויות, מסעדות, לובי ועוד.\nPixel by Keshet — הפתרון המושלם לשילוט דיגיטלי.\n📞 *9555\n#מסכיLED #שילוטדיגיטלי #עסקים`,
   `🔴 מסך LED בכניסה לעסק = רושם ראשוני שלא נשכח.\nPixel by Keshet — מומחים בשילוט דיגיטלי.\n📞 *9555\n#LED #PixelKeshet #שיווקדיגיטלי`,
   `✨ מסכי LED חיצוניים — פרסום שעובד 24/7, בכל מזג אוויר.\nעמיד, בהיר, ומושך עיניים.\n📞 *9555\n#מסכיLEDחיצוניים #שילוטחיצוני #פרסום`,
@@ -14,6 +14,35 @@ const CAPTIONS = [
   `💼 מהחנות הקטנה ועד רשת ארצית — אנחנו בשבילך.\nPixel by Keshet מתקין מסכי LED בכל הארץ.\n📞 *9555\n#מסכיLED #ישראל #עסקיםקטנים`,
   `🎯 רוצה לבלוט מהמתחרים? מסך LED זה התשובה.\nצבע, תנועה, מסר — מושכים לקוחות.\n📞 *9555\n#שילוטדיגיטלי #מסכיLED #שיווק`,
 ];
+
+const CAPTIONS_EN = [
+  `💡 Professional LED screens for your business — stores, restaurants, lobbies & more.\nPixel by Keshet — Israel's leading digital signage experts.\n📞 *9555\n#LEDScreens #DigitalSignage #Business`,
+  `🔴 An LED screen at your entrance = a first impression that lasts.\nPixel by Keshet — digital signage specialists.\n📞 *9555\n#LED #PixelKeshet #Marketing`,
+  `✨ Outdoor LED screens — advertising that works 24/7, in any weather.\nDurable, bright, and eye-catching.\n📞 *9555\n#OutdoorLED #DigitalSignage #Advertising`,
+  `📺 Remote content management = update prices, promotions & ads with one click.\nAdvanced CMS system by Pixel by Keshet.\n📞 *9555\n#CMS #DigitalSignage #Technology`,
+  `🏊 LED screens for pools & wet environments — waterproof, vivid colors.\nOur unique solution for humid environments.\n📞 *9555\n#PoolLED #WaterproofLED #PixelKeshet`,
+  `💼 From small businesses to nationwide chains — we've got you covered.\nPixel by Keshet installs LED screens across Israel.\n📞 *9555\n#LEDScreens #Israel #SmallBusiness`,
+  `🎯 Want to stand out from the competition? LED screens are the answer.\nColor, motion, message — attracting customers.\n📞 *9555\n#DigitalSignage #LEDScreens #Marketing`,
+];
+
+// תרגום כותרת לאנגלית דרך Claude API
+async function translateToEnglish(hebrewText) {
+  const apiKey = process.env.ANTHROPIC_API_KEY || '';
+  if (!apiKey) return hebrewText; // fallback — השאר עברית אם אין מפתח
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: `Translate this Hebrew article title to English. Return ONLY the translated title, nothing else:\n${hebrewText}` }]
+      })
+    });
+    const data = await res.json();
+    return (data.content?.[0]?.text || hebrewText).trim();
+  } catch { return hebrewText; }
+}
 
 
 // ── Google Business Profile Post ────────────
@@ -105,8 +134,13 @@ async function postToLinkedIn(topic, articleUrl, caption) {
 
 async function postToSocial(topic, articleUrl) {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-  const caption = CAPTIONS[dayOfYear % CAPTIONS.length];
-  const imageUrl = getArticleImage(topic, articleUrl);
+  const captionHe = CAPTIONS_HE[dayOfYear % CAPTIONS_HE.length];
+  const captionEn = CAPTIONS_EN[dayOfYear % CAPTIONS_EN.length];
+  const imageUrl  = getArticleImage(topic, articleUrl);
+
+  // תרגם כותרת לאנגלית עבור LinkedIn
+  const topicEn = topic ? await translateToEnglish(topic) : '';
+  const caption  = captionHe; // Facebook/Instagram — עברית
 
   // ── Google Business Profile ──
   const gbpResult = await postToGoogleBusiness(topic, articleUrl, caption);
@@ -114,8 +148,8 @@ async function postToSocial(topic, articleUrl) {
   else if (gbpResult.ok)  console.log(`[social] ✅ Google Business: פורסם`);
   else                    console.error(`[social] ❌ Google Business: ${gbpResult.error}`);
 
-  // ── LinkedIn ישיר (ללא Ayrshare) ──
-  const linkedinResult = await postToLinkedIn(topic, articleUrl, caption);
+  // ── LinkedIn ישיר — באנגלית ──
+  const linkedinResult = await postToLinkedIn(topicEn, articleUrl, captionEn);
   if (linkedinResult.skipped) {
     console.log(`[social] LinkedIn: ${linkedinResult.reason}`);
   } else if (linkedinResult.ok) {
