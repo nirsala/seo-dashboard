@@ -1,56 +1,27 @@
 // ═══════════════════════════════════════════
-//  SEO TASK RUNNER — Full Pipeline v2
+//  SEO TASK RUNNER — Multi-Site v3
 //  תוכן + GitHub API + אינדוקס + רשתות + ניטור
+//  תומך ריצה מקבילה על מספר אתרים
 // ═══════════════════════════════════════════
 const { postToSocial } = require('./social');
 const { pingDirectories } = require('./directories');
 const { checkUptime } = require('./monitor');
-const { publishFile, buildArticlePage, buildBlogIndex } = require('./github-publisher');
+const { createPublisher, buildArticlePage, buildBlogIndex, publishFile, GITHUB_TOKEN, GITHUB_REPO } = require('./github-publisher');
 const { buildBacklinks } = require('./backlinks');
 const { generateDailyReport } = require('./rankings-report');
 const { generateRssFeed } = require('./rss');
+const { getSiteTokens, initSites } = require('./sites-manager');
 
-// מאגר מילות מפתח — המערכת תייצר כותרת חדשה לכל אחת בכל הרצה
-const KEYWORDS = [
-  'מסכי LED לחנויות',
-  'שילוט דיגיטלי למסעדות',
-  'מסכי LED חיצוניים',
-  'CMS למסכי LED',
-  'מסכי LED לובי',
-  'מסכי LED לבריכה',
-  'מחיר מסך LED לעסק',
-  'מסכי LED מלונות',
-  'שילוט דיגיטלי רשתות',
-  'מסכי LED תל אביב',
-  'מסכי LED ירושלים',
-  'מסכי LED חיפה',
-  'תחזוקת מסכי LED',
-  'השוואת מסכי LED',
-  'שלטי חוצות דיגיטליים',
-  'מסכי LED חינוך',
-  'שילוט דיגיטלי בנקים',
-  'מסכי LED ספורט',
-  'מסכי LED חדר כושר',
-  'שילוט דיגיטלי בריאות',
-  'מסכי LED אירועים',
-  'תצוגות ויטרינה LED',
-  'מסכי LED פתח תקווה',
-  'מסכי LED רמת גן',
-  'היתר שלט חוצות',
-  'IP65 מסכי LED',
-  'pixel pitch LED',
-  'מסכי LED סופרמרקט',
-  'שלטים דיגיטליים לעסקים',
-  'תפריט דיגיטלי למסעדה',
-  'מסכי LED למלונות',
-  'מסכי LED לאולמות אירועים',
-  'שילוט דיגיטלי לקניונים',
-  'מסכי LED לחדרי כושר',
-  'מסכי LED לסופרמרקט',
-  'מסכי LED לתחנות דלק',
-  'מסכי LED לקליניקות',
-  'שלטי חוצות LED ישראל',
+// KEYWORDS — ברירת מחדל אם לאתר אין keywords בsites.json
+const DEFAULT_KEYWORDS = [
+  'מסכי LED לחנויות', 'שילוט דיגיטלי למסעדות', 'מסכי LED חיצוניים',
+  'CMS למסכי LED', 'מסכי LED לובי', 'מסכי LED לבריכה',
+  'מסכי LED מלונות', 'שילוט דיגיטלי רשתות', 'מסכי LED תל אביב',
+  'תחזוקת מסכי LED', 'שלטי חוצות דיגיטליים', 'מסכי LED ספורט',
+  'מסכי LED אירועים', 'שלטים דיגיטליים לעסקים', 'תפריט דיגיטלי למסעדה',
 ];
+// backward compat
+const KEYWORDS = DEFAULT_KEYWORDS;
 
 // מעקב כותרות שפורסמו — מונע כפילויות
 const fs = require('fs');
@@ -108,8 +79,20 @@ async function generateTitle(keyword, apiKey) {
 async function runSEO(site, log, apiKey) {
   const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0, sitemap: 0, backlinks: 0 };
   const date = new Date().toISOString().split('T')[0];
-  const keyword = pickKeyword();
-  log('info', `🔑 מילת מפתח: "${keyword}" — מייצר כותרת...`);
+
+  // ── פותר tokens לפי האתר ──
+  const tokens = site._tokens || getSiteTokens(site) || {};
+  const siteKeywords = (site.keywords && site.keywords.length > 0) ? site.keywords : DEFAULT_KEYWORDS;
+  const companyName  = site.companyName || 'Pixel by Keshet';
+  const siteName     = site.name || companyName;
+
+  // Publisher ייעודי לאתר זה
+  const pub = createPublisher(tokens.githubToken, tokens.githubRepo, tokens.githubBranch, site.siteUrl || site.url);
+
+  // בחר keyword לפי האתר
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  const keyword = siteKeywords[dayOfYear % siteKeywords.length];
+  log('info', `🔑 [${siteName}] מילת מפתח: "${keyword}" — מייצר כותרת...`);
   let articleTitle = keyword;
   if (apiKey) {
     try {
@@ -125,9 +108,8 @@ async function runSEO(site, log, apiKey) {
 
   // ── שלב 0: פרסום קובץ אימות IndexNow ──────────
   try {
-    const { publishFile: pub, GITHUB_TOKEN: ghTok } = require('./github-publisher');
-    if (ghTok) {
-      const verifyRes = await pub('pixel2024seo.txt', 'pixel2024seo', 'seo: add IndexNow verification file');
+    if (tokens.githubToken) {
+      const verifyRes = await pub.publish('pixel2024seo.txt', 'pixel2024seo', 'seo: add IndexNow verification file');
       if (verifyRes.ok) log('success', `✅ pixel2024seo.txt פורסם`);
     }
   } catch(e) { /* לא קריטי */ }
@@ -214,7 +196,7 @@ async function runSEO(site, log, apiKey) {
       articleSlug = `led-article-${kwIndex >= 0 ? kwIndex : 0}-${date}`;
 
       const fullHtml = buildArticlePage(topic, articleHtml, date, articleSlug);
-      const result = await publishFile(`blog/${articleSlug}.html`, fullHtml, `seo: ${topic.title}`);
+      const result = await pub.publish(`blog/${articleSlug}.html`, fullHtml, `seo: ${topic.title}`);
 
       if (result.ok) {
         score.publish = 20;
@@ -222,7 +204,7 @@ async function runSEO(site, log, apiKey) {
         markTopicPublished(topic.title, topic.keyword);
 
         // עדכן אינדקס בלוג
-        await updateBlogIndex(topic, articleSlug, date, log);
+        await updateBlogIndex(topic, articleSlug, date, log, pub);
       } else {
         log('error', `❌ GitHub: ${result.error}`);
         if (result.error?.includes('GITHUB_TOKEN')) {
@@ -293,35 +275,21 @@ async function runSEO(site, log, apiKey) {
   // ── שלב 4.5: עדכון sitemap.xml ──────────────
   if (articleSlug) {
     try {
-      const { publishFile: pub, GITHUB_TOKEN: ghToken, GITHUB_REPO: ghRepo } = require('./github-publisher');
-      if (ghToken) {
-        // קרא sitemap קיים מ-GitHub
+      if (tokens.githubToken) {
+        const smText = await pub.readFile('sitemap.xml');
         let existingUrls = [];
-        const smRes = await fetch(`https://api.github.com/repos/${ghRepo}/contents/sitemap.xml`, {
-          headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' }
-        });
-        if (smRes.ok) {
-          const smData = await smRes.json();
-          const smText = Buffer.from(smData.content, 'base64').toString('utf8');
+        if (smText) {
           const matches = smText.match(/<loc>([^<]+)<\/loc>/g) || [];
           existingUrls = matches.map(m => m.replace(/<\/?loc>/g, ''));
         }
         const newUrl = `${siteUrl}/blog/${articleSlug}.html`;
         if (!existingUrls.includes(newUrl)) existingUrls.push(newUrl);
-        // בנה sitemap חדש
-        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join('\n')}
-</urlset>`;
-        const smResult = await pub('sitemap.xml', sitemap, `seo: update sitemap — ${articleSlug}`);
-        if (smResult.ok) {
-          score.sitemap = 10;
-          log('success', `✅ sitemap.xml עודכן (${existingUrls.length} URLs)`);
-        } else {
-          log('warn', `⚠️ sitemap: ${smResult.error}`);
-        }
+        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join('\n')}\n</urlset>`;
+        const smResult = await pub.publish('sitemap.xml', sitemap, `seo: update sitemap — ${articleSlug}`);
+        if (smResult.ok) { score.sitemap = 10; log('success', `✅ sitemap.xml עודכן (${existingUrls.length} URLs)`); }
+        else log('warn', `⚠️ sitemap: ${smResult.error}`);
       } else {
-        log('warn', `⚠️ sitemap: אין GITHUB_TOKEN`);
+        log('warn', `⚠️ sitemap: אין GitHub Token`);
       }
     } catch(e) { log('warn', `⚠️ sitemap: ${e.message}`); }
   }
@@ -345,7 +313,7 @@ ${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><p
   log('info', `📱 שלב 7/7: מפרסם ברשתות חברתיות...`);
   try {
     const articleUrl = articleSlug ? `${siteUrl}/blog/${articleSlug}.html` : siteUrl;
-    const socialRes = await postToSocial(topic.title, articleUrl);
+    const socialRes = await postToSocial(topic.title, articleUrl, tokens);
     if (socialRes.ok)      { score.social = 10; log('success', `✅ פורסם ברשתות חברתיות`); }
     else if (socialRes.skipped) { log('warn', `⚠️ הוסף AYRSHARE_API_KEY לפרסום ברשתות`); }
     else                   { log('error', `❌ רשתות: ${socialRes.error}`); }
@@ -369,38 +337,24 @@ ${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><p
 }
 
 // עדכון אינדקס הבלוג
-async function updateBlogIndex(topic, slug, date, log) {
+async function updateBlogIndex(topic, slug, date, log, pub) {
   try {
-    // קרא אינדקס קיים מ-GitHub
-    const fs = require('fs');
     const indexPath = 'blog/index.json';
     let articles = [];
 
-    const { GITHUB_TOKEN, GITHUB_REPO } = require('./github-publisher');
-    if (GITHUB_TOKEN) {
-      const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${indexPath}`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        articles = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
-      }
+    const raw = await pub.readFile(indexPath);
+    if (raw) {
+      try { articles = JSON.parse(raw); } catch {}
     }
 
-    // הוסף מאמר חדש רק אם ה-slug לא קיים כבר
     const alreadyExists = articles.some(a => a.slug === slug);
     if (!alreadyExists) {
       articles.unshift({ title: topic.title, keyword: topic.keyword, slug, date });
     }
-    // שמור רק 50 האחרונים
     articles = articles.slice(0, 50);
 
-    // פרסם אינדקס JSON
-    const { publishFile, buildBlogIndex } = require('./github-publisher');
-    await publishFile(indexPath, JSON.stringify(articles, null, 2), `seo: update blog index`);
-
-    // פרסם דף HTML של בלוג
-    await publishFile('blog/index.html', buildBlogIndex(articles), `seo: update blog page`);
+    await pub.publish(indexPath, JSON.stringify(articles, null, 2), `seo: update blog index`);
+    await pub.publish('blog/index.html', buildBlogIndex(articles), `seo: update blog page`);
 
     log('success', `✅ אינדקס בלוג עודכן (${articles.length} מאמרים)`);
   } catch(e) {

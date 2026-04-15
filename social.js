@@ -48,9 +48,9 @@ async function translateToEnglish(hebrewText) {
 // ── Facebook Direct API ──────────────────────
 // token: business.facebook.com/settings → System Users → Generate Token
 // scopes: pages_manage_posts, pages_read_engagement
-async function postToFacebook(topic, articleUrl, caption, imageUrl) {
-  const userToken = process.env.FACEBOOK_PAGE_TOKEN || '';
-  const pageId    = process.env.FACEBOOK_PAGE_ID   || '';
+async function postToFacebook(topic, articleUrl, caption, imageUrl, tokens = {}) {
+  const userToken = tokens.facebookPageToken || process.env.FACEBOOK_PAGE_TOKEN || '';
+  const pageId    = tokens.facebookPageId    || process.env.FACEBOOK_PAGE_ID   || '';
   if (!userToken || !pageId) return { skipped: true, platform: 'Facebook', reason: 'אין FACEBOOK_PAGE_TOKEN / FACEBOOK_PAGE_ID' };
 
   try {
@@ -123,9 +123,9 @@ async function postToGoogleBusiness(topic, articleUrl, caption) {
 // token: linkedin.com/developers → My Apps → OAuth 2.0 tools → get token
 // Scopes needed: w_member_social, r_liteprofile, rw_organization_admin
 // LINKEDIN_COMPANY_ID: linkedin.com/company/YOUR-COMPANY → מספר ב-URL
-async function postToLinkedIn(topic, articleUrl, caption) {
-  const token     = process.env.LINKEDIN_ACCESS_TOKEN || '';
-  const companyId = process.env.LINKEDIN_COMPANY_ID  || '';
+async function postToLinkedIn(topic, articleUrl, caption, tokens = {}) {
+  const token     = tokens.linkedinToken     || process.env.LINKEDIN_ACCESS_TOKEN || '';
+  const companyId = tokens.linkedinCompanyId || process.env.LINKEDIN_COMPANY_ID  || '';
   if (!token) return { skipped: true, platform: 'LinkedIn', reason: 'אין LINKEDIN_ACCESS_TOKEN' };
 
   try {
@@ -198,7 +198,9 @@ async function postToLinkedIn(topic, articleUrl, caption) {
   }
 }
 
-async function postToSocial(topic, articleUrl) {
+// tokens: { facebookPageToken, facebookPageId, linkedinToken, linkedinCompanyId }
+// אם לא מועבר — משתמש ב-env vars הגלובליים (backward compat)
+async function postToSocial(topic, articleUrl, tokens = {}) {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   const captionHe = CAPTIONS_HE[dayOfYear % CAPTIONS_HE.length];
   const captionEn = CAPTIONS_EN[dayOfYear % CAPTIONS_EN.length];
@@ -206,10 +208,10 @@ async function postToSocial(topic, articleUrl) {
 
   // תרגם כותרת לאנגלית עבור LinkedIn
   const topicEn = topic ? await translateToEnglish(topic) : '';
-  const caption  = captionHe; // Facebook/Instagram — עברית
+  const caption  = captionHe; // Facebook — עברית
 
-  // ── Facebook Direct (ללא Ayrshare) ──────────
-  const fbResult = await postToFacebook(topic, articleUrl, caption, imageUrl);
+  // ── Facebook Direct ──────────────────────────
+  const fbResult = await postToFacebook(topic, articleUrl, caption, imageUrl, tokens);
   if (fbResult.skipped) {
     console.log(`[social] Facebook: ${fbResult.reason}`);
   } else if (fbResult.ok) {
@@ -218,8 +220,8 @@ async function postToSocial(topic, articleUrl) {
     console.error(`[social] ❌ Facebook שגיאה:`, fbResult.error);
   }
 
-  // ── LinkedIn Direct (ללא Ayrshare) ──────────
-  const liResult = await postToLinkedIn(topicEn || topic, articleUrl, captionEn);
+  // ── LinkedIn Direct ──────────────────────────
+  const liResult = await postToLinkedIn(topicEn || topic, articleUrl, captionEn, tokens);
   if (liResult.skipped) {
     console.log(`[social] LinkedIn: ${liResult.reason}`);
   } else if (liResult.ok) {

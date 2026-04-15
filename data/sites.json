@@ -1,29 +1,67 @@
 {
   "sites": [
     {
-      "id": "46714ac2-1372-4e63-9983-834ec633ab88",
-      "name": "אקס ויזן",
-      "url": "http://www.xvision.co.il",
-      "dir": "",
-      "schedule": "0 8 * * *",
-      "keywords": [],
-      "history": [
-        {
-          "runId": "5a4fb105",
-          "date": "2026-03-29",
-          "score": 35,
-          "topic": "מסכי לובי — חוויית כניסה שתרשים כל מבקר",
-          "breakdown": {
-            "content": 0,
-            "publish": 0,
-            "index_bing": 25,
-            "index_google": 10
-          }
-        }
-      ],
+      "id": "xvision",
+      "name": "Pixel by Keshet — מסכי LED",
+      "siteUrl": "https://xvision.co.il",
+      "url": "https://xvision.co.il",
+      "githubRepo": "nirsala/xvision-website",
+      "companyName": "Pixel by Keshet",
+      "envPrefix": "XVISION",
       "active": true,
-      "lastScore": 35,
-      "lastRun": "2026-03-29"
+      "schedule": "0 8 * * *",
+      "keywords": [
+        "מסכי LED לחנויות", "שילוט דיגיטלי למסעדות", "מסכי LED חיצוניים",
+        "CMS למסכי LED", "מסכי LED לובי", "מסכי LED לבריכה",
+        "מסכי LED מלונות", "שילוט דיגיטלי רשתות", "מסכי LED תל אביב",
+        "מסכי LED ירושלים", "מסכי LED חיפה", "תחזוקת מסכי LED",
+        "השוואת מסכי LED", "שלטי חוצות דיגיטליים", "מסכי LED חינוך",
+        "שילוט דיגיטלי בנקים", "מסכי LED ספורט", "מסכי LED חדר כושר",
+        "שילוט דיגיטלי בריאות", "מסכי LED אירועים", "תצוגות ויטרינה LED",
+        "מסכי LED פתח תקווה", "מסכי LED רמת גן", "היתר שלט חוצות",
+        "IP65 מסכי LED", "pixel pitch LED", "מסכי LED סופרמרקט",
+        "שלטים דיגיטליים לעסקים", "תפריט דיגיטלי למסעדה", "מסכי LED למלונות",
+        "מסכי LED לאולמות אירועים", "שילוט דיגיטלי לקניונים",
+        "מסכי LED לחדרי כושר", "מסכי LED לסופרמרקט", "מסכי LED לתחנות דלק",
+        "מסכי LED לקליניקות", "שלטי חוצות LED ישראל"
+      ],
+      "internalLinks": [
+        { "href": "/products.html", "text": "קטלוג המוצרים שלנו" },
+        { "href": "/pool.html",     "text": "מסכי LED לבריכה" },
+        { "href": "/cms.html",      "text": "מערכת ניהול תוכן" },
+        { "href": "/#contact",      "text": "קבל הצעת מחיר" }
+      ],
+      "lastRun": null,
+      "lastScore": 0
+    },
+    {
+      "id": "dds",
+      "name": "DDS — מערכת ניהול תוכן למסכים",
+      "siteUrl": "https://dds.xvision.co.il",
+      "url": "https://dds.xvision.co.il",
+      "githubRepo": "",
+      "companyName": "Xvision DDS",
+      "envPrefix": "DDS",
+      "active": false,
+      "schedule": "0 9 * * *",
+      "keywords": [
+        "מערכת ניהול תוכן למסכים", "Digital Signage CMS", "תוכנה לניהול מסכי LED",
+        "פתרון CMS לשילוט דיגיטלי", "ניהול תוכן מסכים מרחוק", "CMS ענן למסכים",
+        "עדכון תוכן מסך מרחוק", "לוח זמנים דיגיטלי למסכים", "תוכנת שידור מסכי LED",
+        "ניהול רשת מסכים", "CMS לרשתות חנויות", "מערכת שידור לשלטים דיגיטליים",
+        "ממשק ניהול מסכים", "CMS לבתי מלון", "תוכנת CMS לרשת מסכות",
+        "Digital Signage Software ישראל", "מערכת ניהול פרסום מסכים",
+        "CMS למסכי LED מסעדות", "ניהול קמפיינים דיגיטליים למסכים",
+        "פלטפורמת Digital Signage ישראל"
+      ],
+      "internalLinks": [
+        { "href": "/#features", "text": "תכונות המערכת" },
+        { "href": "/#pricing",  "text": "תוכניות מחיר" },
+        { "href": "/#contact",  "text": "צור קשר" },
+        { "href": "/#demo",     "text": "בקש דמו" }
+      ],
+      "lastRun": null,
+      "lastScore": 0
     }
   ]
 }

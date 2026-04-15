@@ -511,4 +511,56 @@ footer{background:#222;border-top:1px solid rgba(255,255,255,.07);padding:56px 5
 </html>`;
 }
 
-module.exports = { publishFile, buildArticlePage, buildBlogIndex, GITHUB_TOKEN, GITHUB_REPO };
+// ── Multi-site factory ────────────────────────
+// יוצר publisher עם token ו-repo ספציפיים לאתר
+function createPublisher(token, repo, branch, siteUrl) {
+  const _token  = token  || GITHUB_TOKEN;
+  const _repo   = repo   || GITHUB_REPO;
+  const _branch = branch || GITHUB_BRANCH;
+  const _site   = siteUrl || SITE_URL;
+
+  async function _getFileSha(filePath) {
+    if (!_token) return null;
+    try {
+      const res = await fetch(`https://api.github.com/repos/${_repo}/contents/${filePath}`, {
+        headers: { Authorization: `token ${_token}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (res.status === 404) return null;
+      const data = await res.json();
+      return data.sha || null;
+    } catch { return null; }
+  }
+
+  async function publish(filePath, content, commitMsg) {
+    if (!_token) return { ok: false, error: 'אין GitHub Token לאתר זה' };
+    try {
+      const sha  = await _getFileSha(filePath);
+      const body = { message: commitMsg, content: Buffer.from(content, 'utf8').toString('base64'), branch: _branch };
+      if (sha) body.sha = sha;
+      const res  = await fetch(`https://api.github.com/repos/${_repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${_token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (res.ok) return { ok: true, url: data.content?.html_url };
+      return { ok: false, error: data.message };
+    } catch(e) { return { ok: false, error: e.message }; }
+  }
+
+  async function readFile(filePath) {
+    if (!_token) return null;
+    try {
+      const res = await fetch(`https://api.github.com/repos/${_repo}/contents/${filePath}`, {
+        headers: { Authorization: `token ${_token}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return Buffer.from(data.content, 'base64').toString('utf8');
+    } catch { return null; }
+  }
+
+  return { publish, readFile, token: _token, repo: _repo, siteUrl: _site };
+}
+
+module.exports = { publishFile, buildArticlePage, buildBlogIndex, createPublisher, GITHUB_TOKEN, GITHUB_REPO };
