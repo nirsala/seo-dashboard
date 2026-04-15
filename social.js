@@ -61,8 +61,8 @@ async function postToFacebook(topic, articleUrl, caption, imageUrl) {
     const pageTokenData = await pageTokenRes.json();
     const token = pageTokenData.access_token || userToken; // fallback לטוקן המקורי
 
-    const postText = topic
-      ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
+    const postText = articleUrl
+      ? `\u200F${caption}\n\n${articleUrl}`
       : `\u200F${caption}`;
 
     // פרסום עם תמונה (photos endpoint)
@@ -135,8 +135,8 @@ async function postToLinkedIn(topic, articleUrl, caption) {
     const me = await meRes.json();
     const urn = `urn:li:person:${me.sub}`;
 
-    const postText = topic
-      ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
+    const postText = articleUrl
+      ? `\u200F${caption}\n\n${articleUrl}`
       : `\u200F${caption}`;
 
     const body = {
@@ -208,40 +208,7 @@ async function postToSocial(topic, articleUrl) {
     console.error(`[social] ❌ LinkedIn שגיאה:`, liResult.error);
   }
 
-  if (!cfg.ayrshareApiKey) {
-    console.log('[social] אין Ayrshare API Key — מדלג על Ayrshare');
-    return { ok: fbResult.ok || liResult.ok, fbResult, liResult };
-  }
-
-  // \u200F = סימן כיוון RTL — מונע ערבוב עברית/אנגלית
-  const postText = topic
-    ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
-    : `\u200F${caption}`;
-
-  try {
-    const res = await fetch('https://app.ayrshare.com/api/post', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfg.ayrshareApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        post: postText,
-        platforms: ['facebook', 'linkedin', 'gmb'],
-        mediaUrls: [imageUrl],
-      }),
-    });
-    const data = await res.json();
-    if (data.status === 'error' || !res.ok) {
-      console.error('[social] ❌ Ayrshare שגיאה:', JSON.stringify(data));
-      return { ok: false, error: JSON.stringify(data) };
-    }
-    console.log('[social] ✅ פורסם ב: Facebook, LinkedIn, Google Business');
-    return { ok: true, data };
-  } catch(e) {
-    console.error('[social] שגיאה:', e.message);
-    return { ok: false, error: e.message };
-  }
+  return { ok: fbResult.ok || liResult.ok, fbResult, liResult };
 }
 
 module.exports = { postToSocial };
