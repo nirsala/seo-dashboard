@@ -30,32 +30,36 @@ function saveSites(sites) {
 //   XVISION_FB_PAGE_TOKEN, DDS_FB_PAGE_TOKEN
 // fallback למשתנים הגלובליים עבור xvision (backward compat)
 function getSiteTokens(site) {
+  // עדיפות: 1. tokens שמורים ב-DB (הוזנו דרך UI)
+  //          2. env vars עם prefix (XVISION_, DDS_)
+  //          3. env vars גלובליים (backward compat)
+  const t = site.tokens || {};
   const p = (site.envPrefix || site.id || 'XVISION').toUpperCase();
   const env = process.env;
 
-  const get = (key, globalFallback) =>
-    env[`${p}_${key}`] || (globalFallback ? env[globalFallback] : '') || '';
+  const get = (dbKey, envKey, globalFallback) =>
+    t[dbKey] || env[`${p}_${envKey}`] || (globalFallback ? env[globalFallback] : '') || '';
 
   return {
     // GitHub
-    githubToken:       get('GITHUB_TOKEN',      'GITHUB_TOKEN'),
-    githubRepo:        env[`${p}_GITHUB_REPO`] || site.githubRepo || env.GITHUB_REPO || '',
-    githubBranch:      env[`${p}_GITHUB_BRANCH`] || env.GITHUB_BRANCH || 'main',
+    githubToken:       get('githubToken',       'GITHUB_TOKEN',        'GITHUB_TOKEN'),
+    githubRepo:        t.githubRepo || env[`${p}_GITHUB_REPO`] || site.githubRepo || env.GITHUB_REPO || '',
+    githubBranch:      t.githubBranch || env[`${p}_GITHUB_BRANCH`] || env.GITHUB_BRANCH || 'main',
 
     // Facebook
-    facebookPageToken: get('FB_PAGE_TOKEN',     'FACEBOOK_PAGE_TOKEN'),
-    facebookPageId:    get('FB_PAGE_ID',        'FACEBOOK_PAGE_ID'),
+    facebookPageToken: get('facebookPageToken', 'FB_PAGE_TOKEN',       'FACEBOOK_PAGE_TOKEN'),
+    facebookPageId:    get('facebookPageId',    'FB_PAGE_ID',          'FACEBOOK_PAGE_ID'),
 
     // LinkedIn
-    linkedinToken:     get('LINKEDIN_TOKEN',    'LINKEDIN_ACCESS_TOKEN'),
-    linkedinCompanyId: get('LINKEDIN_COMPANY_ID','LINKEDIN_COMPANY_ID'),
+    linkedinToken:     get('linkedinToken',     'LINKEDIN_TOKEN',      'LINKEDIN_ACCESS_TOKEN'),
+    linkedinCompanyId: get('linkedinCompanyId', 'LINKEDIN_COMPANY_ID', 'LINKEDIN_COMPANY_ID'),
 
     // Instagram (future)
-    instagramToken:    get('INSTAGRAM_TOKEN',   ''),
+    instagramToken:    get('instagramToken',    'INSTAGRAM_TOKEN',     ''),
 
     // Google Business (future)
-    googleBizToken:    get('GOOGLE_BIZ_TOKEN',  'GOOGLE_BUSINESS_TOKEN'),
-    googleBizLocation: get('GOOGLE_BIZ_LOC',    'GOOGLE_BUSINESS_LOCATION_ID'),
+    googleBizToken:    get('googleBizToken',    'GOOGLE_BIZ_TOKEN',    'GOOGLE_BUSINESS_TOKEN'),
+    googleBizLocation: get('googleBizLocation', 'GOOGLE_BIZ_LOC',      'GOOGLE_BUSINESS_LOCATION_ID'),
   };
 }
 

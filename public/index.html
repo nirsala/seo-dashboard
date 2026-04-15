@@ -164,6 +164,17 @@ header h1 span{color:var(--red)}
 .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--white)}
 .btn-add{padding:10px 24px;background:var(--red);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s}
 .btn-add:hover{opacity:.85}
+/* ── TOKENS SECTION ── */
+.tokens-section{padding:0 32px 20px}
+.tokens-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:14px}
+@media(max-width:900px){.tokens-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.tokens-grid{grid-template-columns:1fr}}
+.token-group{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.token-group-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.token-group-title svg{opacity:.6}
+.token-status{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.token-status.ok{background:var(--green)}
+.token-status.missing{background:rgba(255,255,255,.2)}
 /* ── EMPTY STATE ── */
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted);padding:60px}
 .empty-state svg{opacity:.3;width:64px;height:64px}
@@ -406,6 +417,61 @@ function renderMain(site) {
     </div>
   </div>
 
+  <!-- ══ TOKENS ══ -->
+  <div class="tokens-section">
+    <div class="section-title">🔑 נכסים וחיבורים</div>
+    <div class="tokens-grid">
+      <div class="token-group">
+        <div class="token-group-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+          <span class="token-status ${site.tokens?.githubToken ? 'ok' : 'missing'}"></span>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>GitHub Token</label>
+          <input class="api-input" type="password" id="tkGithubToken" placeholder="${site.tokens?.githubToken ? '••••••••' : 'ghp_...'}" dir="ltr"/>
+        </div>
+        <div class="field">
+          <label>GitHub Repo</label>
+          <input class="api-input" type="text" id="tkGithubRepo" placeholder="${site.tokens?.githubRepo || site.githubRepo || 'user/repo'}" dir="ltr"/>
+        </div>
+      </div>
+
+      <div class="token-group">
+        <div class="token-group-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+          <span class="token-status ${site.tokens?.facebookPageToken ? 'ok' : 'missing'}"></span>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Page Access Token</label>
+          <input class="api-input" type="password" id="tkFbToken" placeholder="${site.tokens?.facebookPageToken ? '••••••••' : 'EAABs...'}" dir="ltr"/>
+        </div>
+        <div class="field">
+          <label>Page ID</label>
+          <input class="api-input" type="text" id="tkFbPageId" placeholder="${site.tokens?.facebookPageId || '123456789...'}" dir="ltr"/>
+        </div>
+      </div>
+
+      <div class="token-group">
+        <div class="token-group-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#0a66c2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn
+          <span class="token-status ${site.tokens?.linkedinToken ? 'ok' : 'missing'}"></span>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Access Token</label>
+          <input class="api-input" type="password" id="tkLiToken" placeholder="${site.tokens?.linkedinToken ? '••••••••' : 'AQV...'}" dir="ltr"/>
+        </div>
+        <div class="field">
+          <label>Company ID (אופציונלי)</label>
+          <input class="api-input" type="text" id="tkLiCompany" placeholder="${site.tokens?.linkedinCompanyId || '113153991'}" dir="ltr"/>
+        </div>
+      </div>
+    </div>
+    <button class="save-schedule" onclick="saveTokens()">💾 שמור חיבורים</button>
+  </div>
+
   <div class="schedule-section">
     <div class="section-title">תזמון קידום</div>
     <div class="schedule-grid">
@@ -528,6 +594,48 @@ async function saveAyrshare() {
 }
 
 function clearLog() { if (selectedId) { logs[selectedId] = []; renderLog(); } }
+
+async function saveTokens() {
+  if (!selectedId) return;
+  const site = sites.find(s => s.id === selectedId);
+  if (!site) return;
+
+  const existing = site.tokens || {};
+  const fields = {
+    githubToken:       document.getElementById('tkGithubToken')?.value,
+    githubRepo:        document.getElementById('tkGithubRepo')?.value,
+    facebookPageToken: document.getElementById('tkFbToken')?.value,
+    facebookPageId:    document.getElementById('tkFbPageId')?.value,
+    linkedinToken:     document.getElementById('tkLiToken')?.value,
+    linkedinCompanyId: document.getElementById('tkLiCompany')?.value,
+  };
+
+  // מיזוג — שמור ערכים ריקים כ-undefined (לא לדרוס קיים)
+  const tokens = { ...existing };
+  for (const [k, v] of Object.entries(fields)) {
+    if (v && v.trim()) tokens[k] = v.trim();
+  }
+
+  await fetch(`/api/sites/${selectedId}`, {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ tokens })
+  });
+
+  // עדכן state מקומי
+  if (site) site.tokens = tokens;
+
+  // נקה שדות ועדכן placeholders
+  const cleared = ['tkGithubToken','tkFbToken','tkLiToken'];
+  cleared.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.placeholder = '••••••••'; }
+  });
+
+  const btn = event.target;
+  btn.textContent = '✅ נשמר!';
+  setTimeout(() => { btn.textContent = '💾 שמור חיבורים'; }, 2000);
+}
 
 // ══ SCHEDULE HELPERS ════════════════════════════════
 function toggleDay(i) {

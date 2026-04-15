@@ -10,6 +10,7 @@ const fs       = require('fs');
 const path     = require('path');
 const { v4: uuid } = require('uuid');
 const { runSEO } = require('./runner');
+const { getSiteTokens, initSites } = require('./sites-manager');
 
 const DATA_FILE = path.join(__dirname, 'data', 'sites.json');
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'pixel2024';
@@ -232,7 +233,13 @@ async function triggerRun(site) {
   };
 
   try {
-    const result = await runSEO(site, log, apiKey);
+    // הוסף siteUrl ו-_tokens לאובייקט לפני הריצה
+    const siteWithTokens = {
+      ...site,
+      siteUrl: site.siteUrl || site.url,
+      _tokens: getSiteTokens(site),
+    };
+    const result = await runSEO(siteWithTokens, log, apiKey);
     // שמירת היסטוריה
     const entry = { runId, date: result.date, score: result.score, topic: result.topic, breakdown: result.breakdown };
     const idx = sites.findIndex(s => s.id === site.id);

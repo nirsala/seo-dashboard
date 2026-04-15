@@ -6,6 +6,18 @@
       "runtimeExecutable": "/opt/homebrew/Cellar/node/25.9.0_1/bin/node",
       "runtimeArgs": ["server.js"],
       "port": 5555
+    },
+    {
+      "name": "roladin",
+      "runtimeExecutable": "/opt/homebrew/Cellar/node/25.9.0_1/bin/node",
+      "runtimeArgs": ["/Users/nirsala/roladin-shifts/server.js"],
+      "port": 3000
+    },
+    {
+      "name": "jewelry",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/nirsala/adi-bergman-jewelry/start-dev.sh"],
+      "port": 3333
     }
   ]
 }
