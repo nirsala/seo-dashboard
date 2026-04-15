@@ -45,6 +45,49 @@ async function translateToEnglish(hebrewText) {
 }
 
 
+// ── Facebook Direct API ──────────────────────
+// token: business.facebook.com/settings → System Users → Generate Token
+// scopes: pages_manage_posts, pages_read_engagement
+async function postToFacebook(topic, articleUrl, caption, imageUrl) {
+  const token  = process.env.FACEBOOK_PAGE_TOKEN || '';
+  const pageId = process.env.FACEBOOK_PAGE_ID   || '';
+  if (!token || !pageId) return { skipped: true, platform: 'Facebook', reason: 'אין FACEBOOK_PAGE_TOKEN / FACEBOOK_PAGE_ID' };
+
+  const postText = topic
+    ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
+    : `\u200F${caption}`;
+
+  try {
+    // פרסום עם תמונה (photos endpoint)
+    if (imageUrl) {
+      const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: imageUrl, caption: postText, access_token: token, published: true })
+      });
+      const data = await res.json();
+      if (data.id) return { ok: true, platform: 'Facebook', id: data.id };
+      // fallback לפוסט טקסט בלבד
+    }
+
+    // פרסום טקסט בלבד
+    const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: postText,
+        link: articleUrl || undefined,
+        access_token: token,
+      })
+    });
+    const data = await res.json();
+    if (data.id) return { ok: true, platform: 'Facebook', id: data.id, url: `https://facebook.com/${data.id}` };
+    return { ok: false, platform: 'Facebook', error: JSON.stringify(data.error || data) };
+  } catch(e) {
+    return { ok: false, platform: 'Facebook', error: e.message };
+  }
+}
+
 // ── Google Business Profile Post ────────────
 // מפרסם עדכון ישירות בגוגל מפות/גוגל חיפוש מקומי
 // טוקן: console.cloud.google.com → My Business API
@@ -142,9 +185,29 @@ async function postToSocial(topic, articleUrl) {
   const topicEn = topic ? await translateToEnglish(topic) : '';
   const caption  = captionHe; // Facebook/Instagram — עברית
 
+  // ── Facebook Direct (ללא Ayrshare) ──────────
+  const fbResult = await postToFacebook(topic, articleUrl, caption, imageUrl);
+  if (fbResult.skipped) {
+    console.log(`[social] Facebook: ${fbResult.reason}`);
+  } else if (fbResult.ok) {
+    console.log(`[social] ✅ Facebook פורסם (id: ${fbResult.id})`);
+  } else {
+    console.error(`[social] ❌ Facebook שגיאה:`, fbResult.error);
+  }
+
+  // ── LinkedIn Direct (ללא Ayrshare) ──────────
+  const liResult = await postToLinkedIn(topicEn || topic, articleUrl, captionEn);
+  if (liResult.skipped) {
+    console.log(`[social] LinkedIn: ${liResult.reason}`);
+  } else if (liResult.ok) {
+    console.log(`[social] ✅ LinkedIn פורסם: ${liResult.url}`);
+  } else {
+    console.error(`[social] ❌ LinkedIn שגיאה:`, liResult.error);
+  }
+
   if (!cfg.ayrshareApiKey) {
-    console.log('[social] אין Ayrshare API Key — מדלג');
-    return { skipped: true };
+    console.log('[social] אין Ayrshare API Key — מדלג על Ayrshare');
+    return { ok: fbResult.ok || liResult.ok, fbResult, liResult };
   }
 
   // \u200F = סימן כיוון RTL — מונע ערבוב עברית/אנגלית
