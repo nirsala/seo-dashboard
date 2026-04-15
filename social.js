@@ -49,15 +49,22 @@ async function translateToEnglish(hebrewText) {
 // token: business.facebook.com/settings → System Users → Generate Token
 // scopes: pages_manage_posts, pages_read_engagement
 async function postToFacebook(topic, articleUrl, caption, imageUrl) {
-  const token  = process.env.FACEBOOK_PAGE_TOKEN || '';
-  const pageId = process.env.FACEBOOK_PAGE_ID   || '';
-  if (!token || !pageId) return { skipped: true, platform: 'Facebook', reason: 'אין FACEBOOK_PAGE_TOKEN / FACEBOOK_PAGE_ID' };
-
-  const postText = topic
-    ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
-    : `\u200F${caption}`;
+  const userToken = process.env.FACEBOOK_PAGE_TOKEN || '';
+  const pageId    = process.env.FACEBOOK_PAGE_ID   || '';
+  if (!userToken || !pageId) return { skipped: true, platform: 'Facebook', reason: 'אין FACEBOOK_PAGE_TOKEN / FACEBOOK_PAGE_ID' };
 
   try {
+    // המר System User Token ל-Page Access Token
+    const pageTokenRes = await fetch(
+      `https://graph.facebook.com/v21.0/${pageId}?fields=access_token&access_token=${userToken}`
+    );
+    const pageTokenData = await pageTokenRes.json();
+    const token = pageTokenData.access_token || userToken; // fallback לטוקן המקורי
+
+    const postText = topic
+      ? `\u200F📝 מאמר חדש באתר שלנו:\n${topic}\n\n${caption}\n\n${articleUrl}`
+      : `\u200F${caption}`;
+
     // פרסום עם תמונה (photos endpoint)
     if (imageUrl) {
       const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
@@ -74,11 +81,7 @@ async function postToFacebook(topic, articleUrl, caption, imageUrl) {
     const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: postText,
-        link: articleUrl || undefined,
-        access_token: token,
-      })
+      body: JSON.stringify({ message: postText, link: articleUrl || undefined, access_token: token })
     });
     const data = await res.json();
     if (data.id) return { ok: true, platform: 'Facebook', id: data.id, url: `https://facebook.com/${data.id}` };
