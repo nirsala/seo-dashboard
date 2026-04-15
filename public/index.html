@@ -179,6 +179,26 @@ header h1 span{color:var(--red)}
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted);padding:60px}
 .empty-state svg{opacity:.3;width:64px;height:64px}
 .empty-state p{font-size:14px;text-align:center;line-height:1.6}
+/* ── NAV BOTTOM ── */
+.sidebar-nav{padding:10px;border-top:1px solid var(--border);margin-top:auto}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .2s;border:none;background:none;width:100%;text-align:right}
+.nav-btn:hover{background:var(--card);color:var(--white)}
+.nav-btn.active{background:rgba(215,29,67,.12);color:var(--white);border:1px solid rgba(215,29,67,.25)}
+.nav-btn svg{opacity:.6;flex-shrink:0}
+/* ── GLOBAL SETTINGS PAGE ── */
+.settings-page{padding:28px 32px;overflow-y:auto}
+.settings-page h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.settings-page .sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.settings-grid{grid-template-columns:1fr}}
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px}
+.settings-card h4{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.settings-field{margin-bottom:14px}
+.settings-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.settings-field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-size:13px;outline:none;transition:border-color .2s;font-family:inherit;direction:ltr;text-align:left}
+.settings-field input:focus{border-color:rgba(215,29,67,.5)}
+.settings-save-btn{padding:10px 24px;background:var(--red);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;margin-top:4px}
+.settings-save-btn:hover{opacity:.85}
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
 </style>
@@ -191,33 +211,11 @@ header h1 span{color:var(--red)}
     <div class="sidebar-header">אתרים לקידום</div>
     <div class="site-list" id="siteList"></div>
     <div class="add-site-btn" onclick="openModal()">+ הוסף אתר חדש</div>
-    <div class="settings-bar">
-      <label>Claude API Key</label>
-      <div class="api-row">
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." />
-        <button class="api-save" onclick="saveApiKey()">שמור</button>
-      </div>
-    </div>
-    <div class="settings-bar">
-      <label>GitHub Token (לפרסום מאמרים)</label>
-      <div class="api-row">
-        <input class="api-input" type="password" id="githubTokenInput" placeholder="ghp_..." />
-        <button class="api-save" onclick="saveGithubToken()">שמור</button>
-      </div>
-    </div>
-    <div class="settings-bar">
-      <label>GitHub Repo</label>
-      <div class="api-row">
-        <input class="api-input" type="text" id="githubRepoInput" placeholder="user/repo" dir="ltr" />
-        <button class="api-save" onclick="saveGithubRepo()">שמור</button>
-      </div>
-    </div>
-    <div class="settings-bar">
-      <label>Ayrshare Key (רשתות חברתיות)</label>
-      <div class="api-row">
-        <input class="api-input" type="password" id="ayrshareInput" placeholder="..." />
-        <button class="api-save" onclick="saveAyrshare()">שמור</button>
-      </div>
+    <div class="sidebar-nav">
+      <button class="nav-btn" id="navSettings" onclick="showSettings()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        הגדרות מערכת
+      </button>
     </div>
   </aside>
 
@@ -290,13 +288,11 @@ async function init() {
   connectWS();
 }
 
+let globalSettings = {};
+
 async function loadSettings() {
   const r = await fetch('/api/settings', { headers: authHeaders() });
-  const d = await r.json();
-  if (d.apiKey)      document.getElementById('apiKeyInput').placeholder      = d.apiKey;
-  if (d.githubToken) document.getElementById('githubTokenInput').placeholder = d.githubToken;
-  if (d.githubRepo)  document.getElementById('githubRepoInput').placeholder  = d.githubRepo;
-  if (d.ayrshareKey) document.getElementById('ayrshareInput').placeholder    = d.ayrshareKey;
+  globalSettings = await r.json();
 }
 
 async function loadSites() {
@@ -363,6 +359,7 @@ function renderSidebarList() {
 // ══ SELECT SITE ═════════════════════════════════════
 function selectSite(id) {
   selectedId = id;
+  document.getElementById('navSettings')?.classList.remove('active');
   renderSidebarList();
   const site = sites.find(s => s.id === id);
   if (!site) return;
@@ -569,28 +566,90 @@ async function saveSchedule() {
   alert(`✅ תזמון נשמר: כל יום ${runHour}:${runMinute}`);
 }
 
-async function saveApiKey() {
-  const key = document.getElementById('apiKeyInput').value;
-  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ apiKey: key }) });
-  document.getElementById('apiKeyInput').value = '';
-  document.getElementById('apiKeyInput').placeholder = '✅ נשמר';
+function showSettings() {
+  selectedId = null;
+  renderSidebarList();
+  document.getElementById('navSettings').classList.add('active');
+  const mc = document.getElementById('mainContent');
+  const s = globalSettings;
+  mc.innerHTML = `
+  <div class="settings-page">
+    <h2>⚙️ הגדרות מערכת</h2>
+    <p class="sub">טוקנים משותפים לכל האתרים — ברירת מחדל כשאין טוקן ספציפי לאתר</p>
+
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h4>🤖 בינה מלאכותית</h4>
+        <div class="settings-field">
+          <label>Claude API Key (יצירת תוכן)</label>
+          <input type="password" id="gs_apiKey" placeholder="${s.apiKey || 'sk-ant-...'}"/>
+        </div>
+        <button class="settings-save-btn" onclick="saveGlobalField('apiKey','gs_apiKey')">שמור</button>
+      </div>
+
+      <div class="settings-card">
+        <h4>📧 דוחות במייל</h4>
+        <div class="settings-field">
+          <label>Resend API Key</label>
+          <input type="password" id="gs_resendKey" placeholder="${s.resendKey || 're_...'}"/>
+        </div>
+        <div class="settings-field">
+          <label>כתובת מייל לדוחות</label>
+          <input type="text" id="gs_reportEmail" placeholder="${s.reportEmail || 'email@example.com'}"/>
+        </div>
+        <button class="settings-save-btn" onclick="saveGlobalFields({resendKey:'gs_resendKey',reportEmail:'gs_reportEmail'})">שמור</button>
+      </div>
+
+      <div class="settings-card">
+        <h4>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub (ברירת מחדל)
+        </h4>
+        <div class="settings-field">
+          <label>GitHub Token</label>
+          <input type="password" id="gs_githubToken" placeholder="${s.githubToken || 'ghp_...'}"/>
+        </div>
+        <div class="settings-field">
+          <label>GitHub Repo ברירת מחדל</label>
+          <input type="text" id="gs_githubRepo" placeholder="${s.githubRepo || 'user/repo'}"/>
+        </div>
+        <button class="settings-save-btn" onclick="saveGlobalFields({githubToken:'gs_githubToken',githubRepo:'gs_githubRepo'})">שמור</button>
+      </div>
+
+      <div class="settings-card">
+        <h4>🔐 אבטחה</h4>
+        <div class="settings-field">
+          <label>סיסמת דשבורד</label>
+          <input type="password" id="gs_password" placeholder="••••••••"/>
+        </div>
+        <button class="settings-save-btn" onclick="saveGlobalField('dashboardPassword','gs_password')">שמור</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:10px">שינוי הסיסמא ידרוש כניסה מחדש</p>
+      </div>
+    </div>
+  </div>`;
 }
-async function saveGithubToken() {
-  const val = document.getElementById('githubTokenInput').value;
-  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ githubToken: val }) });
-  document.getElementById('githubTokenInput').value = '';
-  document.getElementById('githubTokenInput').placeholder = '✅ נשמר';
+
+async function saveGlobalField(key, inputId) {
+  const val = document.getElementById(inputId)?.value?.trim();
+  if (!val) return;
+  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ [key]: val }) });
+  const el = document.getElementById(inputId);
+  if (el) { el.value = ''; el.placeholder = '✅ נשמר'; }
+  globalSettings[key] = '••••';
 }
-async function saveGithubRepo() {
-  const val = document.getElementById('githubRepoInput').value;
-  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ githubRepo: val }) });
-  document.getElementById('githubRepoInput').placeholder = val || '✅ נשמר';
-}
-async function saveAyrshare() {
-  const val = document.getElementById('ayrshareInput').value;
-  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ ayrshareKey: val }) });
-  document.getElementById('ayrshareInput').value = '';
-  document.getElementById('ayrshareInput').placeholder = '✅ נשמר';
+
+async function saveGlobalFields(map) {
+  const payload = {};
+  for (const [key, inputId] of Object.entries(map)) {
+    const val = document.getElementById(inputId)?.value?.trim();
+    if (val) payload[key] = val;
+  }
+  if (!Object.keys(payload).length) return;
+  await fetch('/api/settings', { method:'PUT', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(payload) });
+  for (const inputId of Object.values(map)) {
+    const el = document.getElementById(inputId);
+    if (el) { el.value = ''; el.placeholder = '✅ נשמר'; }
+  }
 }
 
 function clearLog() { if (selectedId) { logs[selectedId] = []; renderLog(); } }

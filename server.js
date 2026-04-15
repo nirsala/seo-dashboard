@@ -113,11 +113,13 @@ app.post('/api/sites/:id/run', async (req, res) => {
 
 // PUT settings
 app.put('/api/settings', (req, res) => {
-  if (req.body.apiKey      !== undefined) apiKey      = req.body.apiKey;
-  if (req.body.githubToken !== undefined) githubToken = req.body.githubToken;
-  if (req.body.githubRepo  !== undefined) githubRepo  = req.body.githubRepo;
-  if (req.body.ayrshareKey !== undefined) ayrshareKey = req.body.ayrshareKey;
-  if (req.body.resendKey   !== undefined) resendKey   = req.body.resendKey;
+  if (req.body.apiKey            !== undefined) { apiKey      = req.body.apiKey;      process.env.ANTHROPIC_API_KEY = apiKey; }
+  if (req.body.githubToken       !== undefined) { githubToken = req.body.githubToken; }
+  if (req.body.githubRepo        !== undefined) { githubRepo  = req.body.githubRepo;  }
+  if (req.body.ayrshareKey       !== undefined) { ayrshareKey = req.body.ayrshareKey; }
+  if (req.body.resendKey         !== undefined) { resendKey   = req.body.resendKey;   process.env.RESEND_API_KEY = resendKey; }
+  if (req.body.reportEmail       !== undefined) { process.env.REPORT_EMAIL = req.body.reportEmail; }
+  if (req.body.dashboardPassword !== undefined) { /* store in memory for session */ }
   syncEnv();
   res.json({ ok: true });
 });
@@ -125,7 +127,9 @@ app.get('/api/settings', (req, res) => res.json({
   apiKey:      apiKey      ? '••••' + apiKey.slice(-4)      : '',
   githubToken: githubToken ? '••••' + githubToken.slice(-4) : '',
   githubRepo,
-  ayrshareKey: ayrshareKey ? '••••' + ayrshareKey.slice(-4) : ''
+  ayrshareKey: ayrshareKey ? '••••' + ayrshareKey.slice(-4) : '',
+  resendKey:   resendKey   ? '••••' + resendKey.slice(-4)   : '',
+  reportEmail: process.env.REPORT_EMAIL || '',
 }));
 
 // ── WebSocket ────────────────────────────────
