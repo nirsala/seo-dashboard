@@ -121,9 +121,11 @@ async function postToGoogleBusiness(topic, articleUrl, caption) {
 
 // ── LinkedIn Direct API ──────────────────────
 // token: linkedin.com/developers → My Apps → OAuth 2.0 tools → get token
-// Scopes needed: w_member_social, r_liteprofile
+// Scopes needed: w_member_social, r_liteprofile, rw_organization_admin
+// LINKEDIN_COMPANY_ID: linkedin.com/company/YOUR-COMPANY → מספר ב-URL
 async function postToLinkedIn(topic, articleUrl, caption) {
-  const token = process.env.LINKEDIN_ACCESS_TOKEN || '';
+  const token     = process.env.LINKEDIN_ACCESS_TOKEN || '';
+  const companyId = process.env.LINKEDIN_COMPANY_ID  || '';
   if (!token) return { skipped: true, platform: 'LinkedIn', reason: 'אין LINKEDIN_ACCESS_TOKEN' };
 
   try {
@@ -133,14 +135,15 @@ async function postToLinkedIn(topic, articleUrl, caption) {
     });
     if (!meRes.ok) return { ok: false, platform: 'LinkedIn', error: `auth: ${meRes.status}` };
     const me = await meRes.json();
-    const urn = `urn:li:person:${me.sub}`;
+    const personUrn = `urn:li:person:${me.sub}`;
 
     const postText = articleUrl
       ? `\u200F${caption}\n\n${articleUrl}`
       : `\u200F${caption}`;
 
-    const body = {
-      author: urn,
+    // פונקציה לבניית גוף הפוסט
+    const buildPost = (authorUrn) => ({
+      author: authorUrn,
       lifecycleState: 'PUBLISHED',
       specificContent: {
         'com.linkedin.ugc.ShareContent': {
@@ -150,29 +153,46 @@ async function postToLinkedIn(topic, articleUrl, caption) {
             media: [{
               status: 'READY',
               originalUrl: articleUrl,
-              title: { text: topic || 'Pixel by Keshet — מסכי LED' },
+              title: { text: topic || 'Pixel by Keshet — LED Screens' },
             }]
           } : {})
         }
       },
       visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' }
+    });
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
     };
 
-    const res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0',
-      },
-      body: JSON.stringify(body)
+    // פרסום בפרופיל האישי
+    const personalRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST', headers, body: JSON.stringify(buildPost(personUrn))
     });
-    const data = await res.json();
-    if (res.ok && data.id) {
-      const postId = data.id.split(':').pop();
-      return { ok: true, platform: 'LinkedIn', url: `https://www.linkedin.com/feed/update/${data.id}` };
+    const personalData = await personalRes.json();
+    const personalOk = personalRes.ok && personalData.id;
+    if (personalOk) console.log(`[social] ✅ LinkedIn אישי: ${personalData.id}`);
+    else console.error(`[social] ❌ LinkedIn אישי:`, JSON.stringify(personalData));
+
+    // פרסום בדף החברה (אם קיים LINKEDIN_COMPANY_ID)
+    let companyOk = false;
+    if (companyId) {
+      const companyUrn = `urn:li:organization:${companyId}`;
+      const companyRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+        method: 'POST', headers, body: JSON.stringify(buildPost(companyUrn))
+      });
+      const companyData = await companyRes.json();
+      companyOk = companyRes.ok && companyData.id;
+      if (companyOk) console.log(`[social] ✅ LinkedIn חברה: ${companyData.id}`);
+      else console.error(`[social] ❌ LinkedIn חברה:`, JSON.stringify(companyData));
     }
-    return { ok: false, platform: 'LinkedIn', error: JSON.stringify(data) };
+
+    if (personalOk || companyOk) {
+      return { ok: true, platform: 'LinkedIn', url: `https://www.linkedin.com/feed/update/${personalData.id}` };
+    }
+    return { ok: false, platform: 'LinkedIn', error: JSON.stringify(personalData) };
   } catch(e) {
     return { ok: false, platform: 'LinkedIn', error: e.message };
   }
