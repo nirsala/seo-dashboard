@@ -1,22 +1,22 @@
 // ═══════════════════════════════════════════
 //  ARTICLE IMAGES — תמונות מהאתר xvision.co.il בלבד
+//  rotation: כל ריצה תמונה שונה, חוזר רק אחרי שכולן נוצלו
 // ═══════════════════════════════════════════
+
+const fs   = require('fs');
+const path = require('path');
 
 const BASE = 'https://xvision.co.il';
 
-// תמונות שירותים
-const SVC = {
-  indoor:   `${BASE}/assets/images/services/svc-indoor.jpg`,
-  outdoor:  `${BASE}/assets/images/services/svc-outdoor.jpg`,
-  cms:      `${BASE}/assets/images/services/svc-cms.jpg`,
-  install:  `${BASE}/assets/images/services/svc-install.jpg`,
-  support:  `${BASE}/assets/images/services/svc-support.jpg`,
-  content:  `${BASE}/assets/images/services/svc-content.jpg`,
-  hero:     `${BASE}/assets/images/hero-bg.jpg`,
-};
-
-// תמונות פרויקטים — סדרה מגוונת
-const WORKS = [
+// כל התמונות הזמינות — שירותים + פרויקטים
+const ALL_IMAGES = [
+  `${BASE}/assets/images/services/svc-indoor.jpg`,
+  `${BASE}/assets/images/services/svc-outdoor.jpg`,
+  `${BASE}/assets/images/services/svc-cms.jpg`,
+  `${BASE}/assets/images/services/svc-install.jpg`,
+  `${BASE}/assets/images/services/svc-support.jpg`,
+  `${BASE}/assets/images/services/svc-content.jpg`,
+  `${BASE}/assets/images/hero-bg.jpg`,
   `${BASE}/assets/images/works-s01.jpg`,
   `${BASE}/assets/images/works-s02.jpg`,
   `${BASE}/assets/images/works-s03.jpg`,
@@ -39,40 +39,36 @@ const WORKS = [
   `${BASE}/assets/images/works-g10.jpg`,
 ];
 
-// מיפוי לפי קטגוריה
-const CATEGORY_MAP = [
-  { words: ['חיצוני', 'חוצות', 'שלט', 'ביליבורד', 'IP65', 'IP67', 'outdoor'],  img: SVC.outdoor },
-  { words: ['CMS', 'ניהול', 'תוכן', 'pixel pitch', 'תוכנה'],                   img: SVC.cms     },
-  { words: ['התקנ', 'פרויקט', 'הקמ'],                                           img: SVC.install },
-  { words: ['תחזוק', 'שירות', 'תיקון', 'תמיכה'],                               img: SVC.support },
-  { words: ['לובי', 'מלון', 'קבלה', 'כניסה'],                                  img: SVC.indoor  },
-  { words: ['בריכה', 'ספורט', 'כושר', 'אצטדיון', 'פיטנס'],                    img: SVC.outdoor },
-  { words: ['מסעד', 'תפריט', 'קפה', 'מזון', 'אוכל'],                           img: SVC.indoor  },
-  { words: ['חנות', 'קמעונאי', 'רשת', 'ויטרינה', 'סופרמרקט', 'קניון'],       img: SVC.indoor  },
-  { words: ['בנק', 'בית חולים', 'קליניקה', 'בריאות', 'חינוך', 'כיתה'],        img: SVC.indoor  },
-  { words: ['אירוע', 'אולם', 'שמחות', 'חתונה'],                                img: SVC.content },
-];
+// קובץ מצב — שומר את האינדקס הנוכחי
+const STATE_FILE = path.join(__dirname, 'data', 'image-index.json');
 
-// בחר תמונת works לפי keyword (deterministc)
-function pickWork(keyword) {
-  let hash = 0;
-  for (let i = 0; i < keyword.length; i++) hash = ((hash << 5) - hash + keyword.charCodeAt(i)) | 0;
-  return WORKS[Math.abs(hash) % WORKS.length];
-}
-
-function getArticleImage(keyword, title) {
-  const text = (keyword || title || '').trim();
-  const lower = text.toLowerCase();
-
-  // התאמה לפי קטגוריה
-  for (const cat of CATEGORY_MAP) {
-    if (cat.words.some(w => lower.includes(w.toLowerCase()))) {
-      return cat.img;
-    }
+function readIndex() {
+  try {
+    const raw = fs.readFileSync(STATE_FILE, 'utf8');
+    return JSON.parse(raw).index || 0;
+  } catch {
+    return 0;
   }
-
-  // ברירת מחדל — תמונת פרויקט אמיתית מהאתר
-  return pickWork(text);
 }
 
-module.exports = { getArticleImage };
+function saveIndex(idx) {
+  try {
+    const dir = path.dirname(STATE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(STATE_FILE, JSON.stringify({ index: idx }));
+  } catch {}
+}
+
+function getNextImage() {
+  const idx = readIndex();
+  const img = ALL_IMAGES[idx % ALL_IMAGES.length];
+  saveIndex((idx + 1) % ALL_IMAGES.length);
+  return img;
+}
+
+// ── API ──────────────────────────────────────
+function getArticleImage(keyword, title) {
+  return getNextImage();
+}
+
+module.exports = { getArticleImage, ALL_IMAGES };
