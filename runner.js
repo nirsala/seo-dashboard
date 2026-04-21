@@ -192,8 +192,8 @@ async function runSEO(site, log, apiKey) {
     log('info', `🚀 שלב 3/6: מפרסם ל-GitHub...`);
     try {
       // slug באנגלית בלבד — מונע URL שבור עם עברית
-      const kwIndex = KEYWORDS.indexOf(topic.keyword);
-      articleSlug = `led-article-${kwIndex >= 0 ? kwIndex : 0}-${date}`;
+      const kwIndex = siteKeywords.indexOf(topic.keyword);
+      articleSlug = `led-article-${kwIndex >= 0 ? kwIndex : (dayOfYear % siteKeywords.length)}-${date}`;
 
       const fullHtml = buildArticlePage(topic, articleHtml, date, articleSlug);
       const result = await pub.publish(`blog/${articleSlug}.html`, fullHtml, `seo: ${topic.title}`);
@@ -284,7 +284,9 @@ async function runSEO(site, log, apiKey) {
         }
         const newUrl = `${siteUrl}/blog/${articleSlug}.html`;
         if (!existingUrls.includes(newUrl)) existingUrls.push(newUrl);
-        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${existingUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join('\n')}\n</urlset>`;
+        // סנן URLs שגויים (http://, www., כפילויות)
+        const cleanUrls = [...new Set(existingUrls.filter(u => u.startsWith('https://')))];
+        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${cleanUrls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join('\n')}\n</urlset>`;
         const smResult = await pub.publish('sitemap.xml', sitemap, `seo: update sitemap — ${articleSlug}`);
         if (smResult.ok) { score.sitemap = 10; log('success', `✅ sitemap.xml עודכן (${existingUrls.length} URLs)`); }
         else log('warn', `⚠️ sitemap: ${smResult.error}`);
