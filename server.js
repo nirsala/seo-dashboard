@@ -11,6 +11,7 @@ const path     = require('path');
 const { v4: uuid } = require('uuid');
 const { runSEO } = require('./runner');
 const { getSiteTokens, initSites } = require('./sites-manager');
+const { fetchRankings } = require('./rankings');
 
 const DATA_FILE = path.join(__dirname, 'data', 'sites.json');
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'pixel2024';
@@ -28,6 +29,7 @@ let githubToken  = process.env.GITHUB_TOKEN      || '';
 let githubRepo   = process.env.GITHUB_REPO       || '';
 let ayrshareKey  = process.env.AYRSHARE_API_KEY  || '';
 let resendKey    = process.env.RESEND_API_KEY    || '';
+let valueSerpKey = process.env.VALUESERP_API_KEY || '';
 const REPORT_EMAIL = process.env.REPORT_EMAIL || 'nirsala@gmail.com';
 
 // הזרק לסביבה כך ש-github-publisher ו-social יוכלו לקרוא
@@ -113,24 +115,49 @@ app.post('/api/sites/:id/run', async (req, res) => {
 
 // PUT settings
 app.put('/api/settings', (req, res) => {
-  if (req.body.apiKey            !== undefined) { apiKey      = req.body.apiKey;      process.env.ANTHROPIC_API_KEY = apiKey; }
-  if (req.body.githubToken       !== undefined) { githubToken = req.body.githubToken; }
-  if (req.body.githubRepo        !== undefined) { githubRepo  = req.body.githubRepo;  }
-  if (req.body.ayrshareKey       !== undefined) { ayrshareKey = req.body.ayrshareKey; }
-  if (req.body.resendKey         !== undefined) { resendKey   = req.body.resendKey;   process.env.RESEND_API_KEY = resendKey; }
+  if (req.body.apiKey            !== undefined) { apiKey       = req.body.apiKey;       process.env.ANTHROPIC_API_KEY  = apiKey; }
+  if (req.body.githubToken       !== undefined) { githubToken  = req.body.githubToken; }
+  if (req.body.githubRepo        !== undefined) { githubRepo   = req.body.githubRepo;  }
+  if (req.body.ayrshareKey       !== undefined) { ayrshareKey  = req.body.ayrshareKey; }
+  if (req.body.resendKey         !== undefined) { resendKey    = req.body.resendKey;    process.env.RESEND_API_KEY     = resendKey; }
+  if (req.body.valueSerpKey      !== undefined) { valueSerpKey = req.body.valueSerpKey; process.env.VALUESERP_API_KEY  = valueSerpKey; }
   if (req.body.reportEmail       !== undefined) { process.env.REPORT_EMAIL = req.body.reportEmail; }
   if (req.body.dashboardPassword !== undefined) { /* store in memory for session */ }
   syncEnv();
   res.json({ ok: true });
 });
 app.get('/api/settings', (req, res) => res.json({
-  apiKey:      apiKey      ? '••••' + apiKey.slice(-4)      : '',
-  githubToken: githubToken ? '••••' + githubToken.slice(-4) : '',
+  apiKey:       apiKey       ? '••••' + apiKey.slice(-4)       : '',
+  githubToken:  githubToken  ? '••••' + githubToken.slice(-4)  : '',
   githubRepo,
-  ayrshareKey: ayrshareKey ? '••••' + ayrshareKey.slice(-4) : '',
-  resendKey:   resendKey   ? '••••' + resendKey.slice(-4)   : '',
-  reportEmail: process.env.REPORT_EMAIL || '',
+  ayrshareKey:  ayrshareKey  ? '••••' + ayrshareKey.slice(-4)  : '',
+  resendKey:    resendKey    ? '••••' + resendKey.slice(-4)     : '',
+  valueSerpKey: valueSerpKey ? '••••' + valueSerpKey.slice(-4)  : '',
+  reportEmail:  process.env.REPORT_EMAIL || '',
 }));
+
+// GET rankings
+app.get('/api/sites/:id/rankings', async (req, res) => {
+  const site = sites.find(s => s.id === req.params.id);
+  if (!site) return res.status(404).json({ error: 'לא נמצא' });
+  if (!valueSerpKey) return res.status(400).json({ error: 'VALUESERP_API_KEY לא מוגדר' });
+
+  const today = new Date().toISOString().split('T')[0];
+  if (site.rankings?.date === today && site.rankings?.results?.length) {
+    return res.json(site.rankings);
+  }
+
+  try {
+    const keywords = site.keywords?.length ? site.keywords : ['מסכי LED לעסקים'];
+    const results = await fetchRankings(keywords, site.siteUrl || site.url, valueSerpKey);
+    const rankings = { date: today, results };
+    const idx = sites.findIndex(s => s.id === site.id);
+    if (idx !== -1) { sites[idx].rankings = rankings; save(); }
+    res.json(rankings);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ── WebSocket ────────────────────────────────
 const server = http.createServer(app);

@@ -175,6 +175,25 @@ header h1 span{color:var(--red)}
 .token-status{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
 .token-status.ok{background:var(--green)}
 .token-status.missing{background:rgba(255,255,255,.2)}
+/* ── RANKINGS SECTION ── */
+.rankings-section{padding:0 32px 28px}
+.rankings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.rankings-refresh{padding:6px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s}
+.rankings-refresh:hover{border-color:var(--red);color:var(--white)}
+.rankings-refresh:disabled{opacity:.4;cursor:default}
+.rankings-table{width:100%;border-collapse:collapse;font-size:13px}
+.rankings-table th{padding:9px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600}
+.rankings-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.rankings-table tr:hover td{background:rgba(255,255,255,.02)}
+.rank-pos{display:inline-flex;align-items:center;justify-content:center;width:32px;height:24px;border-radius:5px;font-weight:800;font-size:12px}
+.rank-pos.top3{background:rgba(16,185,129,.18);color:#10b981}
+.rank-pos.top10{background:rgba(59,130,246,.15);color:#3b82f6}
+.rank-pos.top30{background:rgba(245,158,11,.12);color:#f59e0b}
+.rank-pos.low{background:rgba(255,255,255,.06);color:var(--muted)}
+.rank-pos.none{background:transparent;color:rgba(255,255,255,.2)}
+.rank-url{font-size:11px;color:var(--muted);direction:ltr;text-align:left;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rankings-empty{padding:40px;text-align:center;color:var(--muted);font-size:13px}
+.rankings-no-key{background:rgba(215,29,67,.08);border:1px solid rgba(215,29,67,.2);border-radius:8px;padding:16px 20px;font-size:13px;color:var(--muted)}
 /* ── EMPTY STATE ── */
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted);padding:60px}
 .empty-state svg{opacity:.3;width:64px;height:64px}
@@ -509,6 +528,14 @@ function renderMain(site) {
       </tr>`).join('')}
     </table>
   </div>` : ''}
+
+  <div class="rankings-section">
+    <div class="rankings-header">
+      <div class="section-title" style="margin-bottom:0">📍 מיקומים בגוגל ישראל</div>
+      <button class="rankings-refresh" id="rankingsBtn" onclick="loadRankings(true)">🔄 רענן מיקומים</button>
+    </div>
+    <div id="rankingsBody"><div class="rankings-empty">לחץ "רענן מיקומים" לטעינה</div></div>
+  </div>
   `;
   if (runningIds.has(site.id)) setRunBtn(true);
   renderLog();
@@ -614,6 +641,16 @@ function showSettings() {
       </div>
 
       <div class="settings-card">
+        <h4>📍 מיקומים בגוגל</h4>
+        <div class="settings-field">
+          <label>ValueSERP API Key</label>
+          <input type="password" id="gs_valueSerpKey" placeholder="${s.valueSerpKey || ''}"/>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:12px">מאפשר מעקב מיקומים ב-google.co.il — <a href="https://www.valueserp.com/" target="_blank" style="color:var(--blue)">100 חיפושים חינם/חודש</a></p>
+        <button class="settings-save-btn" onclick="saveGlobalField('valueSerpKey','gs_valueSerpKey')">שמור</button>
+      </div>
+
+      <div class="settings-card">
         <h4>🔐 אבטחה</h4>
         <div class="settings-field">
           <label>סיסמת דשבורד</label>
@@ -650,6 +687,50 @@ async function saveGlobalFields(map) {
 }
 
 function clearLog() { if (selectedId) { logs[selectedId] = []; renderLog(); } }
+
+async function loadRankings(forceRefresh) {
+  const btn = document.getElementById('rankingsBtn');
+  const body = document.getElementById('rankingsBody');
+  if (!body || !selectedId) return;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ טוען...'; }
+  body.innerHTML = '<div class="rankings-empty">טוען מיקומים מגוגל ישראל...</div>';
+  try {
+    const url = `/api/sites/${selectedId}/rankings${forceRefresh ? '?refresh=1' : ''}`;
+    const r = await fetch(url, { headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) {
+      if (r.status === 400 && data.error?.includes('VALUESERP')) {
+        body.innerHTML = `<div class="rankings-no-key">⚠️ נדרש <strong>ValueSERP API Key</strong> — הגדר אותו בהגדרות המערכת.<br><br><a href="https://www.valueserp.com/" target="_blank" style="color:var(--blue)">קבל API Key חינמי ←</a></div>`;
+      } else {
+        body.innerHTML = `<div class="rankings-empty">שגיאה: ${data.error}</div>`;
+      }
+      return;
+    }
+    if (!data.results?.length) { body.innerHTML = '<div class="rankings-empty">אין נתונים</div>'; return; }
+    const rows = data.results.map(r => {
+      const p = r.position;
+      const cls = !p ? 'none' : p <= 3 ? 'top3' : p <= 10 ? 'top10' : p <= 30 ? 'top30' : 'low';
+      const posText = p ? `#${p}` : '—';
+      const urlCell = r.url ? `<a href="${r.url}" target="_blank" class="rank-url">${r.url.replace(/^https?:\/\//, '')}</a>` : '<span class="rank-url">לא נמצא בגוגל</span>';
+      return `<tr>
+        <td>${r.keyword}</td>
+        <td><span class="rank-pos ${cls}">${posText}</span></td>
+        <td>${urlCell}</td>
+        ${r.error ? `<td style="font-size:11px;color:var(--muted)">${r.error}</td>` : '<td></td>'}
+      </tr>`;
+    }).join('');
+    body.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">עודכן: ${data.date} | google.co.il</div>
+      <table class="rankings-table">
+        <tr><th>מילת מפתח</th><th>מיקום</th><th>URL</th><th></th></tr>
+        ${rows}
+      </table>`;
+  } catch(e) {
+    body.innerHTML = `<div class="rankings-empty">שגיאת רשת: ${e.message}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 רענן מיקומים'; }
+  }
+}
 
 async function saveTokens() {
   if (!selectedId) return;
