@@ -176,17 +176,56 @@ async function postToLinkedIn(topic, articleUrl, caption, tokens = {}) {
     if (personalOk) console.log(`[social] ✅ LinkedIn אישי: ${personalData.id}`);
     else console.error(`[social] ❌ LinkedIn אישי:`, JSON.stringify(personalData));
 
-    // פרסום בדף החברה (אם קיים LINKEDIN_COMPANY_ID)
+    // שיתוף הפוסט האישי לדף החברה (reshare — עובד בלי Marketing API)
     let companyOk = false;
-    if (companyId) {
-      const companyUrn = `urn:li:organization:${companyId}`;
-      const companyRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-        method: 'POST', headers, body: JSON.stringify(buildPost(companyUrn))
-      });
-      const companyData = await companyRes.json();
-      companyOk = companyRes.ok && companyData.id;
-      if (companyOk) console.log(`[social] ✅ LinkedIn חברה: ${companyData.id}`);
-      else console.error(`[social] ❌ LinkedIn חברה:`, JSON.stringify(companyData));
+    if (companyId && personalOk && personalData.id) {
+      try {
+        const reshareBody = {
+          author: `urn:li:organization:${companyId}`,
+          lifecycleState: 'PUBLISHED',
+          specificContent: {
+            'com.linkedin.ugc.ShareContent': {
+              shareCommentary: { text: postText },
+              shareMediaCategory: 'NONE',
+              shareFeatureContext: {
+                'com.linkedin.ugc.ShareFeatureContext': {
+                  resharedShare: personalData.id
+                }
+              }
+            }
+          },
+          visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' }
+        };
+        const reshareRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+          method: 'POST', headers, body: JSON.stringify(reshareBody)
+        });
+        const reshareData = await reshareRes.json();
+        companyOk = reshareRes.ok && reshareData.id;
+        if (companyOk) console.log(`[social] ✅ LinkedIn חברה (reshare): ${reshareData.id}`);
+        else {
+          // fallback — נסה פוסט ישיר עם ה-API החדש
+          const newApiBody = {
+            author: `urn:li:organization:${companyId}`,
+            commentary: postText,
+            visibility: 'PUBLIC',
+            distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
+            lifecycleState: 'PUBLISHED',
+            isReshareDisabledByAuthor: false,
+            ...(articleUrl ? { content: { article: { source: articleUrl, title: topic || '' } } } : {})
+          };
+          const newApiRes = await fetch('https://api.linkedin.com/rest/posts', {
+            method: 'POST',
+            headers: { ...headers, 'LinkedIn-Version': '202304' },
+            body: JSON.stringify(newApiBody)
+          });
+          const newApiData = newApiRes.status === 201 ? { id: newApiRes.headers.get('x-restli-id') } : await newApiRes.json();
+          companyOk = newApiRes.status === 201;
+          if (companyOk) console.log(`[social] ✅ LinkedIn חברה (new API): ${newApiData.id}`);
+          else console.log(`[social] ⚠️ LinkedIn חברה: נדרש אישור LinkedIn Marketing API (${newApiData?.message || newApiRes.status})`);
+        }
+      } catch(e) {
+        console.log(`[social] ⚠️ LinkedIn חברה: ${e.message}`);
+      }
     }
 
     if (personalOk || companyOk) {

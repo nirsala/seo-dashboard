@@ -39,10 +39,10 @@
       "name": "DDS — מערכת ניהול תוכן למסכים",
       "siteUrl": "https://dds.xvision.co.il",
       "url": "https://dds.xvision.co.il",
-      "githubRepo": "",
+      "githubRepo": "nirsala/pixel-cms-website",
       "companyName": "Xvision DDS",
       "envPrefix": "DDS",
-      "active": false,
+      "active": true,
       "schedule": "0 9 * * *",
       "keywords": [
         "מערכת ניהול תוכן למסכים", "Digital Signage CMS", "תוכנה לניהול מסכי LED",
