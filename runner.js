@@ -100,6 +100,82 @@ function pickSecondaryKeywords(primaryKeyword, allKeywords, count = 3) {
   return candidates.slice(0, count);
 }
 
+// ── פרומפט xvision (מסכי LED) ────────────────
+function buildXvisionPrompt({ topic, secondaryLine, date, companyName, domain, internalLinks }) {
+  return `כתוב מאמר SEO מקצועי בעברית עבור חברת "${companyName}" — מומחים למסכי LED ושילוט דיגיטלי.
+
+נושא המאמר: "${topic.title}"
+מילת מפתח ראשית: "${topic.keyword}"
+${secondaryLine}
+תאריך: ${date}
+
+===== עקרונות E-E-A-T שחובה לקיים =====
+1. EXPERIENCE: כלול דוגמאות ספציפיות מהשטח, מספרים אמיתיים, מצבי לקוח אמיתיים
+2. EXPERTISE: השתמש במינוח מקצועי: pixel pitch, IP65, ניט, refresh rate, PWM
+3. AUTHORITATIVENESS: ציין ש-${companyName} פועלת בישראל עם עשרות פרויקטים
+4. TRUSTWORTHINESS: כלול נתונים, השוואות, יתרונות וחסרונות — לא רק שיווק
+
+===== מבנה חובה =====
+- <h1> אחד בדיוק עם מילת המפתח הראשית + שנה (${date.slice(0,4)})
+- 4-5 כותרות <h2> — לפחות אחת עם מספר, אחת בפורמט שאלה
+- פסקת מסקנה עם CTA עדין
+- 900-1200 מילים
+- 3 קישורים פנימיים מגוונים:\n${internalLinks}
+- אזכור "${companyName}"${domain ? ` ו-"${domain}"` : ''} פעם אחת כל אחד
+- לפחות רשימה <ul> אחת עם 4-6 פריטים
+${secondaryLine ? `\n===== מילות מפתח משניות =====\n${secondaryLine}\nשלב אותן טבעית בכותרות h2, פסקאות ו-FAQ.` : ''}
+
+===== FAQ Schema בסוף =====
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"[שאלה 1]","acceptedAnswer":{"@type":"Answer","text":"[תשובה]"}},{"@type":"Question","name":"[שאלה 2]","acceptedAnswer":{"@type":"Answer","text":"[תשובה]"}},{"@type":"Question","name":"[שאלה 3]","acceptedAnswer":{"@type":"Answer","text":"[תשובה]"}}]}</script>
+
+אל תציין מחירים/עלויות — הפנה ל"קבל הצעת מחיר".
+החזר HTML בלבד (ללא DOCTYPE/html/head/body).`;
+}
+
+// ── פרומפט DDS (מערכת CMS למסכים) ───────────
+function buildDDSPrompt({ topic, secondaryLine, date, companyName, domain, internalLinks }) {
+  return `כתוב מאמר SEO מקצועי בעברית עבור "${companyName}" — מערכת ניהול תוכן (CMS) מתקדמת למסכי Digital Signage.
+
+נושא המאמר: "${topic.title}"
+מילת מפתח ראשית: "${topic.keyword}"
+${secondaryLine}
+תאריך: ${date}
+
+===== הקשר עסקי =====
+${companyName} היא מערכת ענן לניהול תוכן על מסכי Digital Signage — מאפשרת לרשתות עסקים, מלונות, חנויות ומסעדות לנהל תוכן על מסכים מרחוק, לתזמן קמפיינים, לעדכן מחירים ומבצעים בלחיצת כפתור.
+
+===== גישה לכתיבה =====
+כתוב כמומחה תוכן שמכיר את שוק ה-Digital Signage ואת האתגרים של מנהלי שיווק ברשתות עסקים.
+השתמש בנתונים ודוגמאות אמיתיות מהתעשייה — למשל:
+- "רשת של 50 סניפים יכולה לעדכן תפריט בכל המסכים בו זמנית"
+- "מחקרים מראים שתוכן דינמי מגדיל מכירות ב-30%"
+- "ניהול מרכזי חוסך שעות עבודה שבועיות"
+
+===== עקרונות E-E-A-T =====
+1. EXPERIENCE: דוגמאות קונקרטיות — מסעדה, מלון, חנות שרשת
+2. EXPERTISE: מינוח מקצועי: playlist scheduling, content loop, zone management, API integration, cloud-based CMS
+3. AUTHORITATIVENESS: השווה ל"פתרונות דומים בשוק" (ללא שמות ספציפיים) — הצג יתרונות
+4. TRUSTWORTHINESS: כלול נתונים, use cases אמיתיים, גם מגבלות/שיקולים
+
+===== מבנה חובה =====
+- <h1> אחד בדיוק עם מילת המפתח הראשית + שנה (${date.slice(0,4)})
+- 4-5 כותרות <h2> — לפחות אחת עם מספר ("5 יתרונות...", "3 תרחישים..."), אחת בפורמט שאלה
+- כלול use case אחד לפחות כ-<blockquote> או קטע "לדוגמה"
+- פסקת מסקנה עם CTA עדין לנסות/לפנות
+- 900-1200 מילים
+- 3 קישורים פנימיים מגוונים:\n${internalLinks}
+- אזכור "${companyName}"${domain ? ` ו-"${domain}"` : ''} פעם אחת כל אחד
+- לפחות רשימה <ul> אחת עם 4-6 פריטים
+${secondaryLine ? `\n===== מילות מפתח משניות =====\n${secondaryLine}\nשלב אותן טבעית בכותרות, פסקאות ו-FAQ.` : ''}
+
+===== FAQ Schema בסוף =====
+3 שאלות ותשובות ספציפיות לנושא ה-CMS/Digital Signage:
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"[שאלה 1]","acceptedAnswer":{"@type":"Answer","text":"[תשובה]"}},{"@type":"Question","name":"[שאלה 2]","acceptedAnswer":{"@type":"Answer","text":"[תשובה]"}},{"@type":"Question","name":"[שאלה 3]","acceptedAnswer":{"@type":"Answer","text":"[תשובה]"}}]}</script>
+
+אל תציין מחירים ספציפיים — הפנה ל"בקש דמו" או "צור קשר".
+החזר HTML בלבד (ללא DOCTYPE/html/head/body).`;
+}
+
 async function runSEO(site, log, apiKey) {
   const score = { content: 0, publish: 0, index_bing: 0, index_google: 0, social: 0, monitor: 0, sitemap: 0, backlinks: 0 };
   const date = new Date().toISOString().split('T')[0];
@@ -165,6 +241,12 @@ async function runSEO(site, log, apiKey) {
       const siteUrl = site.siteUrl || site.url || '';
       const domain = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+      // בניית פרומפט — שונה לפי סוג האתר
+      const isDDS = site.id === 'dds';
+      const articlePrompt = isDDS
+        ? buildDDSPrompt({ topic, secondaryLine, date, companyName, domain, internalLinks })
+        : buildXvisionPrompt({ topic, secondaryLine, date, companyName, domain, internalLinks });
+
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -175,45 +257,7 @@ async function runSEO(site, log, apiKey) {
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 3000,
-          messages: [{
-            role: 'user',
-            content: `כתוב מאמר SEO מקצועי בעברית עבור חברת "${companyName}".
-
-נושא המאמר: "${topic.title}"
-מילת מפתח ראשית: "${topic.keyword}"
-${secondaryLine}
-תאריך: ${date}
-
-===== עקרונות E-E-A-T שחובה לקיים =====
-1. EXPERIENCE (ניסיון): כלול דוגמאות ספציפיות מהשטח, מספרים אמיתיים, מצבי לקוח אמיתיים
-2. EXPERTISE (מומחיות): השתמש במינוח מקצועי הרלוונטי לנושא
-3. AUTHORITATIVENESS: ציין ש-${companyName} פועלת בישראל עם עשרות פרויקטים
-4. TRUSTWORTHINESS: כלול נתונים, השוואות, יתרונות וחסרונות — לא רק שיווק
-
-===== מבנה חובה =====
-- <h1> אחד בדיוק עם מילת המפתח הראשית + שנה (${date.slice(0,4)})
-- 4-5 כותרות <h2> שמכסות כוונות חיפוש שונות — לפחות אחת עם מספר ("5 סיבות...", "3 דברים שחשוב לדעת...")
-- כותרת אחת <h2> בפורמט שאלה ("האם...?", "מתי כדאי...?", "מה ההבדל בין...?")
-- פסקת מסקנה עם CTA עדין
-- 900-1200 מילים
-- 3 קישורים פנימיים מגוונים (בחר 3 מהרשימה שמתאימים להקשר):
-${internalLinks}
-- אזכור "${companyName}"${domain ? ` ו-"${domain}"` : ''} פעם אחת כל אחד
-- לפחות רשימה אחת <ul> עם 4-6 פריטים
-
-===== אסטרטגיית מילות מפתח משניות =====
-${secondaryLine ? `שלב את מילות המפתח המשניות בכותרות h2, בפסקאות הרלוונטיות, וב-FAQ — באופן טבעי ולא מאולץ.
-כל מילת מפתח משנית צריכה להופיע לפחות פעם אחת בגוף המאמר.` : ''}
-
-===== FAQ Schema בסוף =====
-הוסף בסיום:
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"[שאלה 1 ספציפית לנושא]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת 2-3 משפטים]"}},{"@type":"Question","name":"[שאלה 2 ספציפית]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}},{"@type":"Question","name":"[שאלה 3 ספציפית]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}}]}</script>
-
-===== חשוב =====
-אל תציין מחירים, עלויות, סכומי כסף, טווחי מחיר, או כל אזכור של שקלים/דולרים — גם אם מילת המפתח כוללת "מחיר". במקום זאת הפנה לקישור "קבל הצעת מחיר" (קישור פנימי).
-
-החזר HTML בלבד (גוף המאמר, ללא DOCTYPE/html/head/body).`
-          }]
+          messages: [{ role: 'user', content: articlePrompt }]
         })
       });
       const data = await res.json();
@@ -355,7 +399,7 @@ ${secondaryLine ? `שלב את מילות המפתח המשניות בכותרו
   log('info', `📱 שלב 7/7: מפרסם ברשתות חברתיות...`);
   try {
     const articleUrl = articleSlug ? `${siteUrl}/blog/${articleSlug}.html` : siteUrl;
-    const socialRes = await postToSocial(topic.title, articleUrl, tokens);
+    const socialRes = await postToSocial(topic.title, articleUrl, tokens, site.id);
     if (socialRes.ok)      { score.social = 10; log('success', `✅ פורסם ברשתות חברתיות`); }
     else if (socialRes.skipped) { log('warn', `⚠️ הוסף AYRSHARE_API_KEY לפרסום ברשתות`); }
     else                   { log('error', `❌ רשתות: ${socialRes.error}`); }

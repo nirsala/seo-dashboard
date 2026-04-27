@@ -5,6 +5,7 @@
 const cfg = require('./config');
 const { getArticleImage } = require('./article-images');
 
+// ── xvision captions ─────────────────────────
 const CAPTIONS_HE = [
   `💡 מסכי LED מקצועיים לעסק שלך — חנויות, מסעדות, לובי ועוד.\nPixel by Keshet — הפתרון המושלם לשילוט דיגיטלי.\n📞 *9555\n#מסכיLED #שילוטדיגיטלי #עסקים`,
   `🔴 מסך LED בכניסה לעסק = רושם ראשוני שלא נשכח.\nPixel by Keshet — מומחים בשילוט דיגיטלי.\n📞 *9555\n#LED #PixelKeshet #שיווקדיגיטלי`,
@@ -23,6 +24,27 @@ const CAPTIONS_EN = [
   `🏊 LED screens for pools & wet environments — waterproof, vivid colors.\nOur unique solution for humid environments.\n📞 *9555\n#PoolLED #WaterproofLED #PixelKeshet`,
   `💼 From small businesses to nationwide chains — we've got you covered.\nPixel by Keshet installs LED screens across Israel.\n📞 *9555\n#LEDScreens #Israel #SmallBusiness`,
   `🎯 Want to stand out from the competition? LED screens are the answer.\nColor, motion, message — attracting customers.\n📞 *9555\n#DigitalSignage #LEDScreens #Marketing`,
+];
+
+// ── DDS captions ──────────────────────────────
+const DDS_CAPTIONS_HE = [
+  `📲 נהל את כל המסכים שלך ממקום אחד — עדכן תוכן, תזמן קמפיינים, עקוב אחרי ביצועים.\nXvision DDS — מערכת CMS חכמה לשילוט דיגיטלי.\n#DigitalSignage #CMS #שילוטדיגיטלי`,
+  `🏪 רשת של 50 סניפים? עדכן את כל המסכים בלחיצת כפתור אחת.\nXvision DDS — ניהול תוכן מרכזי למסכי LED.\n#Digital Signage #ניהולמסכים #טכנולוגיה`,
+  `⏰ תזמון חכם למסכים: הצג בוקר תפריט ארוחת בוקר, ערב — מבצעי ערב. אוטומטי לחלוטין.\nXvision DDS מנהל את השידור בשבילך.\n#ContentScheduling #שילוטדיגיטלי #אוטומציה`,
+  `🎯 תוכן דינמי על המסכים = 30% יותר מכירות. זה לא קסם — זה ניהול נכון.\nXvision DDS — הפלטפורמה לניהול תוכן מסכים.\n#DigitalSignage #ROI #שיווקדיגיטלי`,
+  `☁️ ענן, מאובטח, תמיד זמין — ניהול מסכי ה-LED שלך מכל מקום בעולם.\nXvision DDS — CMS ענן לשילוט דיגיטלי.\n#CloudCMS #DigitalSignage #SaaS`,
+  `📊 דוחות, ניתוחים, ביצועי תוכן — כל מה שצריך לדעת על המסכים שלך במקום אחד.\nXvision DDS Analytics.\n#Analytics #DigitalSignage #DataDriven`,
+  `🔌 אינטגרציה קלה עם מסכי כל היצרנים. Plug & Play. ניהול מרכזי. תמיכה 24/7.\nXvision DDS.\n#Integration #DigitalSignage #CMS`,
+];
+
+const DDS_CAPTIONS_EN = [
+  `📲 Manage all your screens from one place — update content, schedule campaigns, track performance.\nXvision DDS — Smart CMS for Digital Signage.\n#DigitalSignage #CMS #ContentManagement`,
+  `🏪 Running 50 branches? Update all screens with one click.\nXvision DDS — Centralized content management for LED screens.\n#DigitalSignage #RetailTech #Automation`,
+  `⏰ Smart scheduling: show breakfast menu in the morning, dinner specials at night. Fully automatic.\nXvision DDS manages your broadcast.\n#ContentScheduling #DigitalSignage #SmartRetail`,
+  `🎯 Dynamic content on screens = 30% more sales. It's not magic — it's smart management.\nXvision DDS — The platform for screen content management.\n#DigitalSignage #ROI #DigitalMarketing`,
+  `☁️ Cloud-based, secure, always available — manage your LED screens from anywhere in the world.\nXvision DDS — Cloud CMS for digital signage.\n#CloudCMS #DigitalSignage #SaaS`,
+  `📊 Reports, analytics, content performance — everything you need to know about your screens in one place.\nXvision DDS Analytics.\n#Analytics #DigitalSignage #DataDriven`,
+  `🔌 Easy integration with screens from any manufacturer. Plug & Play. Centralized management. 24/7 support.\nXvision DDS.\n#Integration #DigitalSignage #CMS`,
 ];
 
 // תרגום כותרת לאנגלית דרך Claude API
@@ -238,12 +260,13 @@ async function postToLinkedIn(topic, articleUrl, caption, tokens = {}) {
 }
 
 // tokens: { facebookPageToken, facebookPageId, linkedinToken, linkedinCompanyId }
-// אם לא מועבר — משתמש ב-env vars הגלובליים (backward compat)
-async function postToSocial(topic, articleUrl, tokens = {}) {
+// siteId: 'xvision' | 'dds' (ברירת מחדל: 'xvision')
+async function postToSocial(topic, articleUrl, tokens = {}, siteId = 'xvision') {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-  const captionHe = CAPTIONS_HE[dayOfYear % CAPTIONS_HE.length];
-  const captionEn = CAPTIONS_EN[dayOfYear % CAPTIONS_EN.length];
-  const imageUrl  = getArticleImage(topic, articleUrl);
+  const isDDS = siteId === 'dds';
+  const captionHe = isDDS ? DDS_CAPTIONS_HE[dayOfYear % DDS_CAPTIONS_HE.length] : CAPTIONS_HE[dayOfYear % CAPTIONS_HE.length];
+  const captionEn = isDDS ? DDS_CAPTIONS_EN[dayOfYear % DDS_CAPTIONS_EN.length] : CAPTIONS_EN[dayOfYear % CAPTIONS_EN.length];
+  const imageUrl  = getArticleImage(topic, articleUrl, siteId);
 
   // תרגם כותרת לאנגלית עבור LinkedIn
   const topicEn = topic ? await translateToEnglish(topic) : '';
