@@ -238,6 +238,7 @@ footer{background:#222;border-top:1px solid rgba(255,255,255,.07);padding:56px 5
     <li><a href="/pool.html">מסכי בריכה</a></li>
     <li><a href="/cms.html">ניהול תוכן</a></li>
     <li><a href="/blog/">בלוג</a></li>
+    <li><a href="https://dds.xvision.co.il/" target="_blank" rel="noopener" style="color:#d71d43;border:1px solid rgba(215,29,67,.35);border-radius:12px;padding:2px 10px;font-size:11px">מערכת ניהול</a></li>
     <li><a href="/#contact">צור קשר</a></li>
   </ul>
   <div class="nav-right">
