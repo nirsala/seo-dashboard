@@ -12,13 +12,21 @@ const { generateDailyReport } = require('./rankings-report');
 const { generateRssFeed } = require('./rss');
 const { getSiteTokens, initSites } = require('./sites-manager');
 
-// KEYWORDS — ברירת מחדל אם לאתר אין keywords בsites.json
+// KEYWORDS — ברירת מחדל אם לאתר אין keywords בsites.json (עודכן עם ניתוח מתחרים)
 const DEFAULT_KEYWORDS = [
+  // ── ליבה ──
   'מסכי LED לחנויות', 'שילוט דיגיטלי למסעדות', 'מסכי LED חיצוניים',
   'CMS למסכי LED', 'מסכי LED לובי', 'מסכי LED לבריכה',
   'מסכי LED מלונות', 'שילוט דיגיטלי רשתות', 'מסכי LED תל אביב',
   'תחזוקת מסכי LED', 'שלטי חוצות דיגיטליים', 'מסכי LED ספורט',
   'מסכי LED אירועים', 'שלטים דיגיטליים לעסקים', 'תפריט דיגיטלי למסעדה',
+  // ── חדשות ממתחרים (scannerlight, danor, peach) ──
+  'מסכי LED לאולמות אירועים', 'מסכי LED לקניונים', 'מסכי LED לאצטדיונים',
+  'מסכי LED לתיאטרון', 'מסכי LED לבתים פרטיים', 'רצפת LED וידאו',
+  'מסכי LED גמישים', 'מסכי LED שקופים', 'שילוט דיגיטלי לפרסום חיצוני',
+  'מסכי LED לגני אירועים', 'מסכי ענק בהתאמה אישית',
+  'שילוט דיגיטלי לחדרי כושר', 'מסכי LED לחברות ומשרדים',
+  'מסכי LED לתערוכות', 'שילוט דיגיטלי לבנקים',
 ];
 // backward compat
 const KEYWORDS = DEFAULT_KEYWORDS;
@@ -46,7 +54,7 @@ function pickKeyword() {
 }
 
 // מבקש מ-Claude לייצר כותרת חדשה וייחודית למילת מפתח
-async function generateTitle(keyword, apiKey) {
+async function generateTitle(keyword, apiKey, companyName = 'Pixel by Keshet') {
   const published = getPublishedTopics().map(p => p.title);
   const usedTitles = published.length
     ? `\nכותרות שכבר נכתבו (אל תחזור עליהן):\n${published.map(t => `- ${t}`).join('\n')}`
@@ -64,7 +72,7 @@ async function generateTitle(keyword, apiKey) {
       max_tokens: 100,
       messages: [{
         role: 'user',
-        content: `צור כותרת מאמר SEO אחת בעברית עבור חברת "Pixel by Keshet" — מומחים למסכי LED ושילוט דיגיטלי בישראל.
+        content: `צור כותרת מאמר SEO אחת בעברית עבור חברת "${companyName}".
 מילת מפתח: "${keyword}"
 הכותרת חייבת להכיל את מילת המפתח, להיות מושכת, מקצועית, ולא דומה לקיימות.${usedTitles}
 
@@ -74,6 +82,22 @@ async function generateTitle(keyword, apiKey) {
   });
   const data = await res.json();
   return (data.content?.[0]?.text || keyword).trim();
+}
+
+// בחר 2-3 מילות מפתח משניות קשורות מתוך רשימת keywords של האתר
+function pickSecondaryKeywords(primaryKeyword, allKeywords, count = 3) {
+  const idx = allKeywords.indexOf(primaryKeyword);
+  const base = idx >= 0 ? idx : 0;
+  const total = allKeywords.length;
+  const candidates = [];
+  // לוקח את השכנים הקרובים ברשימה — קשורים נושאית
+  for (let offset = 1; candidates.length < count * 2 && offset < total; offset++) {
+    const next = allKeywords[(base + offset) % total];
+    const prev = allKeywords[(base - offset + total) % total];
+    if (next && next !== primaryKeyword) candidates.push(next);
+    if (prev && prev !== primaryKeyword && prev !== next) candidates.push(prev);
+  }
+  return candidates.slice(0, count);
 }
 
 async function runSEO(site, log, apiKey) {
@@ -96,7 +120,7 @@ async function runSEO(site, log, apiKey) {
   let articleTitle = keyword;
   if (apiKey) {
     try {
-      articleTitle = await generateTitle(keyword, apiKey);
+      articleTitle = await generateTitle(keyword, apiKey, companyName);
     } catch(e) {
       log('warn', `⚠️ לא הצלחתי לייצר כותרת: ${e.message}`);
     }
@@ -126,6 +150,21 @@ async function runSEO(site, log, apiKey) {
 
   if (apiKey) {
     try {
+      // מילות מפתח משניות — עוזרות לדירוג על כל מילות המפתח של האתר
+      const secondaryKws = pickSecondaryKeywords(topic.keyword, siteKeywords, 3);
+      const secondaryLine = secondaryKws.length
+        ? `מילות מפתח משניות (שלב אותן באופן טבעי, אל תבלוט): "${secondaryKws.join('", "')}"`
+        : '';
+
+      // קישורים פנימיים — מתוך הגדרות האתר
+      const internalLinks = (site.internalLinks || [])
+        .map(l => `  <a href="${l.href}">${l.text}</a>`)
+        .join('\n') || '  <a href="/#contact">קבל הצעת מחיר</a>';
+
+      // שם הדומיין לאזכור
+      const siteUrl = site.siteUrl || site.url || '';
+      const domain = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -138,39 +177,40 @@ async function runSEO(site, log, apiKey) {
           max_tokens: 3000,
           messages: [{
             role: 'user',
-            content: `כתוב מאמר SEO מקצועי בעברית עבור חברת "Pixel by Keshet" — מומחים למסכי LED ושילוט דיגיטלי בישראל.
+            content: `כתוב מאמר SEO מקצועי בעברית עבור חברת "${companyName}".
 
 נושא המאמר: "${topic.title}"
 מילת מפתח ראשית: "${topic.keyword}"
+${secondaryLine}
 תאריך: ${date}
 
 ===== עקרונות E-E-A-T שחובה לקיים =====
 1. EXPERIENCE (ניסיון): כלול דוגמאות ספציפיות מהשטח, מספרים אמיתיים, מצבי לקוח אמיתיים
-2. EXPERTISE (מומחיות): השתמש במינוח מקצועי: pixel pitch, IP65, ניט, refresh rate, PWM
-3. AUTHORITATIVENESS: ציין שPixel by Keshet פועלת בישראל עם עשרות פרויקטים
+2. EXPERTISE (מומחיות): השתמש במינוח מקצועי הרלוונטי לנושא
+3. AUTHORITATIVENESS: ציין ש-${companyName} פועלת בישראל עם עשרות פרויקטים
 4. TRUSTWORTHINESS: כלול נתונים, השוואות, יתרונות וחסרונות — לא רק שיווק
 
 ===== מבנה חובה =====
-- <h1> אחד בדיוק עם מילת המפתח + שנה (${date.slice(0,4)})
+- <h1> אחד בדיוק עם מילת המפתח הראשית + שנה (${date.slice(0,4)})
 - 4-5 כותרות <h2> שמכסות כוונות חיפוש שונות — לפחות אחת עם מספר ("5 סיבות...", "3 דברים שחשוב לדעת...")
 - כותרת אחת <h2> בפורמט שאלה ("האם...?", "מתי כדאי...?", "מה ההבדל בין...?")
 - פסקת מסקנה עם CTA עדין
 - 900-1200 מילים
-- 3 קישורים פנימיים מגוונים:
-  <a href="/products.html">קטלוג המוצרים שלנו</a>
-  <a href="/pool.html">מסכי LED לבריכה</a>
-  <a href="/cms.html">מערכת ניהול תוכן</a>
-  <a href="/#contact">קבל הצעת מחיר</a>
-  (בחר 3 מהרשימה הנ"ל שמתאימים להקשר)
-- אזכור "Pixel by Keshet" ו-"xvision.co.il" פעם אחת כל אחד
+- 3 קישורים פנימיים מגוונים (בחר 3 מהרשימה שמתאימים להקשר):
+${internalLinks}
+- אזכור "${companyName}"${domain ? ` ו-"${domain}"` : ''} פעם אחת כל אחד
 - לפחות רשימה אחת <ul> עם 4-6 פריטים
+
+===== אסטרטגיית מילות מפתח משניות =====
+${secondaryLine ? `שלב את מילות המפתח המשניות בכותרות h2, בפסקאות הרלוונטיות, וב-FAQ — באופן טבעי ולא מאולץ.
+כל מילת מפתח משנית צריכה להופיע לפחות פעם אחת בגוף המאמר.` : ''}
 
 ===== FAQ Schema בסוף =====
 הוסף בסיום:
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"[שאלה 1 ספציפית לנושא]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת 2-3 משפטים]"}},{"@type":"Question","name":"[שאלה 2 ספציפית]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}},{"@type":"Question","name":"[שאלה 3 ספציפית]","acceptedAnswer":{"@type":"Answer","text":"[תשובה מפורטת]"}}]}</script>
 
 ===== חשוב =====
-אל תציין מחירים, עלויות, סכומי כסף, טווחי מחיר, או כל אזכור של שקלים/דולרים — גם אם מילת המפתח כוללת "מחיר". במקום זאת הפנה ל"קבל הצעת מחיר" (קישור פנימי).
+אל תציין מחירים, עלויות, סכומי כסף, טווחי מחיר, או כל אזכור של שקלים/דולרים — גם אם מילת המפתח כוללת "מחיר". במקום זאת הפנה לקישור "קבל הצעת מחיר" (קישור פנימי).
 
 החזר HTML בלבד (גוף המאמר, ללא DOCTYPE/html/head/body).`
           }]
