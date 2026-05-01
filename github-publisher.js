@@ -107,16 +107,22 @@ function buildSchema(topic, date, slug, siteUrl, site = {}) {
       "operatingSystem": "Web",
       "url": siteUrl,
       "description": "מערכת ניהול תוכן (CMS) למסכי Digital Signage — ניהול מרחוק, תזמון קמפיינים, ניתוח ביצועים",
-      "inLanguage": "he"
+      "inLanguage": "he",
+      "sameAs": ["https://www.linkedin.com/company/xvision-technologies/", "https://www.facebook.com/PixelByKeshet"]
     } : {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": companyName,
       "url": siteUrl,
       "telephone": "*9555",
-      "address": { "@type": "PostalAddress", "addressCountry": "IL" },
+      "address": { "@type": "PostalAddress", "addressCountry": "IL", "addressLocality": "Israel" },
       "description": "מומחים למסכי LED ושילוט דיגיטלי לעסקים בישראל",
-      "priceRange": "$$"
+      "priceRange": "$$",
+      "sameAs": [
+        "https://www.facebook.com/PixelByKeshet",
+        "https://www.linkedin.com/company/xvision-technologies/",
+        "https://xvision.co.il"
+      ]
     }
   ];
   return JSON.stringify(schemas);
