@@ -6,7 +6,7 @@
 const { postToSocial } = require('./social');
 const { pingDirectories } = require('./directories');
 const { checkUptime } = require('./monitor');
-const { createPublisher, buildArticlePage, buildBlogIndex, publishFile, GITHUB_TOKEN, GITHUB_REPO } = require('./github-publisher');
+const { createPublisher, buildArticlePage, buildArticlePageForSite, buildBlogIndex, buildLlmsTxt, buildRobotsTxt, publishFile, GITHUB_TOKEN, GITHUB_REPO } = require('./github-publisher');
 const { buildBacklinks } = require('./backlinks');
 const { generateDailyReport } = require('./rankings-report');
 const { generateRssFeed } = require('./rss');
@@ -206,11 +206,13 @@ async function runSEO(site, log, apiKey) {
   let articleSlug = '';
   let articleHtml = '';
 
-  // ── שלב 0: פרסום קובץ אימות IndexNow ──────────
+  // ── שלב 0: קבצי תשתית (IndexNow + llms.txt + robots.txt) ──
   try {
     if (tokens.githubToken) {
-      const verifyRes = await pub.publish('pixel2024seo.txt', 'pixel2024seo', 'seo: add IndexNow verification file');
-      if (verifyRes.ok) log('success', `✅ pixel2024seo.txt פורסם`);
+      await pub.publish('pixel2024seo.txt', 'pixel2024seo', 'seo: IndexNow verification');
+      await pub.publish('llms.txt', buildLlmsTxt(site), 'seo: update llms.txt for AI crawlers');
+      await pub.publish('robots.txt', buildRobotsTxt(site), 'seo: update robots.txt');
+      log('success', `✅ llms.txt + robots.txt פורסמו`);
     }
   } catch(e) { /* לא קריטי */ }
 
@@ -277,9 +279,10 @@ async function runSEO(site, log, apiKey) {
     try {
       // slug באנגלית בלבד — מונע URL שבור עם עברית
       const kwIndex = siteKeywords.indexOf(topic.keyword);
-      articleSlug = `led-article-${kwIndex >= 0 ? kwIndex : (dayOfYear % siteKeywords.length)}-${date}`;
+      const slugPrefix = site.id === 'dds' ? 'cms-article' : 'led-article';
+      articleSlug = `${slugPrefix}-${kwIndex >= 0 ? kwIndex : (dayOfYear % siteKeywords.length)}-${date}`;
 
-      const fullHtml = buildArticlePage(topic, articleHtml, date, articleSlug);
+      const fullHtml = buildArticlePageForSite(topic, articleHtml, date, articleSlug, site);
       const result = await pub.publish(`blog/${articleSlug}.html`, fullHtml, `seo: ${topic.title}`);
 
       if (result.ok) {
