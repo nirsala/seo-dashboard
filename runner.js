@@ -11,6 +11,7 @@ const { buildBacklinks } = require('./backlinks');
 const { generateDailyReport } = require('./rankings-report');
 const { generateRssFeed } = require('./rss');
 const { getSiteTokens, initSites } = require('./sites-manager');
+const { runDailyResearch } = require('./keyword-research');
 
 // KEYWORDS — ברירת מחדל אם לאתר אין keywords בsites.json (עודכן עם ניתוח 11 מתחרים)
 const DEFAULT_KEYWORDS = [
@@ -243,6 +244,15 @@ async function runSEO(site, log, apiKey) {
       log('success', `✅ llms.txt + robots.txt פורסמו`);
     }
   } catch(e) { /* לא קריטי */ }
+
+  // ── שלב 0.5: מחקר מילות מפתח יומי ───────────
+  try {
+    log('info', `🔬 מחקר מילות מפתח: סורק מתחרים...`);
+    const kwResult = await runDailyResearch(log);
+    if (kwResult.newKeywords && kwResult.newKeywords.length > 0) {
+      log('success', `🆕 ${kwResult.newKeywords.length} מילות מפתח חדשות נמצאו ונשמרו`);
+    }
+  } catch(e) { log('warn', `⚠️ מחקר מילות מפתח: ${e.message}`); }
 
   // ── שלב 1: ניטור זמינות ─────────────────────
   log('info', `🌐 שלב 1/6: בודק זמינות אתר...`);
