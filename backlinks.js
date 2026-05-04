@@ -345,6 +345,70 @@ async function postToGoogleBusiness(title, articleUrl) {
   } catch(e) { return { ok: false, platform: 'Google Business', error: e.message }; }
 }
 
+// ── דפי זהב (d.co.il) — Ping + submit ────────
+// שולח את ה-URL לאינדקס דפי הזהב הישראלי
+async function pingDapeiZahav(articleUrl) {
+  try {
+    const pingUrl = `https://www.d.co.il/api/ping?url=${encodeURIComponent(articleUrl || SITE_URL)}&sitemap=${encodeURIComponent(SITE_URL + '/sitemap.xml')}`;
+    const res = await fetch(pingUrl, { signal: AbortSignal.timeout(8000) });
+    return { ok: res.status < 400, platform: 'דפי זהב', status: res.status };
+  } catch(e) {
+    return { ok: false, platform: 'דפי זהב', error: e.message };
+  }
+}
+
+// ── Blogli.co.il — פינג אגרגטור בלוגים ישראלי ─
+async function pingBlogli(title, articleUrl) {
+  const xmlBody = `<?xml version="1.0"?>
+<methodCall>
+  <methodName>weblogUpdates.ping</methodName>
+  <params>
+    <param><value><string>${SITE_NAME}</string></value></param>
+    <param><value><string>${articleUrl || SITE_URL}</string></value></param>
+  </params>
+</methodCall>`;
+  try {
+    const res = await fetch('https://www.blogli.co.il/ping/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/xml' },
+      body: xmlBody,
+      signal: AbortSignal.timeout(8000)
+    });
+    return { ok: res.status < 400, platform: 'Blogli', status: res.status };
+  } catch(e) {
+    return { ok: false, platform: 'Blogli', error: e.message };
+  }
+}
+
+// ── Tapuz — פינג RSS לאגרגטור ────────────────
+async function pingTapuz(articleUrl) {
+  try {
+    const res = await fetch(
+      `https://www.tapuz.co.il/ping/?url=${encodeURIComponent(SITE_URL + '/feed.xml')}`,
+      { method: 'GET', signal: AbortSignal.timeout(8000) }
+    );
+    return { ok: res.status < 400, platform: 'Tapuz', status: res.status };
+  } catch(e) {
+    return { ok: false, platform: 'Tapuz', error: e.message };
+  }
+}
+
+// ── IsraelBiz ping — מנועי חיפוש ישראליים ────
+async function pingIsraeliEngines(siteUrl) {
+  const endpoints = [
+    `https://www.walla.co.il/websearch/ping?url=${encodeURIComponent(siteUrl)}`,
+    `https://www.nana10.co.il/ping/?url=${encodeURIComponent(siteUrl)}`,
+  ];
+  const results = [];
+  for (const ep of endpoints) {
+    try {
+      const res = await fetch(ep, { signal: AbortSignal.timeout(6000) });
+      results.push({ ep, ok: res.status < 400 });
+    } catch(e) { results.push({ ep, ok: false }); }
+  }
+  return { ok: results.some(r => r.ok), platform: 'מנועי חיפוש ישראליים', results };
+}
+
 // ── בנה תוכן לפרסום ─────────────────────────
 function buildBacklinkContent(topic, articleUrl, apiKey) {
   const intro = `${topic.title} — מאמר מקצועי מאת ${SITE_NAME}.`;
@@ -444,6 +508,20 @@ async function buildBacklinks(topic, articleUrl, log) {
     results.push(gbRes);
   } else {
     log('error', `❌ Google Business: ${gbRes.error}`);
+  }
+
+  // ── 🇮🇱 פלטפורמות ישראליות ──────────────────
+  log('info', `🇮🇱 Backlinks ישראלי: דפי זהב, Blogli, Tapuz, Walla/Nana...`);
+  const [dapeiZahav, blogli, tapuz, israeliEngines] = await Promise.all([
+    pingDapeiZahav(articleUrl || SITE_URL),
+    pingBlogli(topic.title, articleUrl || SITE_URL),
+    pingTapuz(articleUrl || SITE_URL),
+    pingIsraeliEngines(SITE_URL),
+  ]);
+
+  for (const r of [dapeiZahav, blogli, tapuz, israeliEngines]) {
+    if (r.ok) log('success', `✅ ${r.platform}: פינג נשלח`);
+    else      log('warn',    `⚠️ ${r.platform}: ${r.error || `status ${r.status}`}`);
   }
 
   return results;
