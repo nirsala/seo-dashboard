@@ -314,33 +314,115 @@ async function postToReddit(title, articleUrl) {
 }
 
 // ── Google Business Profile ────────────────────
-// OAuth: console.cloud.google.com → Business Profile API → OAuth 2.0
-// accountId + locationId: My Business API
+// הגדרה חד-פעמית (ראה הוראות ב-README):
+//   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET — מ-Google Cloud Console
+//   GOOGLE_REFRESH_TOKEN                   — אחרי OAuth flow ראשוני
+//   GOOGLE_BUSINESS_ACCOUNT_ID             — GET /accounts → accounts[0].name
+//   GOOGLE_BUSINESS_LOCATION_ID            — GET /accounts/{id}/locations → locations[0].name
+
+// תמונות פרויקטים מהאתר — מסתובבות יומית
+const GBP_IMAGES = [
+  'assets/images/works-s01.jpg',
+  'assets/images/works-s02.jpg',
+  'assets/images/works-s03.jpg',
+  'assets/images/works-s06.webp',
+  'assets/images/works-s10.webp',
+  'assets/images/works-g06.webp',
+  'assets/images/works-g10.webp',
+  'assets/images/portfolio-install.jpg',
+  'assets/images/portfolio-store.jpg',
+  'assets/images/portfolio-w2.jpg',
+  'assets/images/portfolio-w3.jpg',
+  'assets/images/strip-2.webp',
+  'assets/images/strip-10.jpg',
+  'assets/products/img-562.jpg',
+  'assets/products/img-982.jpg',
+  'assets/products/img-969.jpg',
+  'assets/products/img-411.jpg',
+  'assets/products/img-639.jpg',
+  'assets/products/img-844.jpg',
+  'assets/products/img-1063.jpg',
+  'assets/products/img-103.jpg',
+  'assets/products/img-665.jpg',
+  'assets/products/img-512.jpg',
+  'assets/products/img-939.jpg',
+  'assets/products/img-535.jpg',
+  'assets/products/img-286.jpg',
+  'assets/products/img-754.jpg',
+  'assets/products/img-970.jpg',
+];
+
+// תבניות פוסט — מסתובבות יומית (עברית, מקצועי)
+const GBP_TEMPLATES = [
+  (title, url) => `✨ ${title}\n\nאנחנו ב-Pixel by Keshet מתמחים בפתרונות שילוט דיגיטלי ומסכי LED לעסקים בכל הארץ.\n\n📍 פרויקטים בתל אביב, ירושלים, חיפה ועוד\n📞 *9555\n🌐 ${url}`,
+  (title, url) => `💡 ${title}\n\nמסך LED מקצועי — ההשקעה שמחזירה את עצמה.\nלקוחות שהתקינו מסכי תצוגה דיגיטליים מדווחים על עלייה של 30%+ במעורבות לקוחות.\n\n👉 תאמו פגישת ייעוץ חינמית: ${url}`,
+  (title, url) => `🏆 ${title}\n\nPixel by Keshet — הפתרון המקצועי למסכי LED ושילוט דיגיטלי.\n✅ מסכי 24/7 לעסקים\n✅ ניהול תוכן מרחוק\n✅ אחריות + תמיכה טכנית\n\n📲 ${url}`,
+  (title, url) => `🖥️ ${title}\n\nרשתות, מסעדות, חנויות, לובי, מלונות — כולם כבר עברו לשילוט דיגיטלי.\nהגיע הזמן לעסק שלכם.\n\n📞 *9555 | ${url}`,
+  (title, url) => `🔥 ${title}\n\nאל תפספסו את המהפכה הדיגיטלית בשילוט!\nמסכי LED חיצוניים ופנימיים בהתאמה אישית לכל עסק.\n\n💬 מלאו פרטים לקבלת הצעת מחיר: ${url}`,
+  (title, url) => `📺 ${title}\n\nמסכי תצוגה מקצועיים מבית Pixel by Keshet:\n• קיר וידאו LED\n• מסכי חלון ראווה\n• שילוט דיגיטלי לפרסום חיצוני\n• ניהול תוכן בענן\n\n${url}`,
+  (title, url) => `🌟 ${title}\n\nהתוכן הנכון, במקום הנכון, בזמן הנכון.\nמערכת ניהול תוכן מתקדמת לכל מסכי ה-LED שלכם — ממקום אחד.\n\n🌐 ${url} | 📞 *9555`,
+];
+
+// ── רענן Access Token מ-Refresh Token ──────────
+async function refreshGoogleToken() {
+  const clientId     = process.env.GOOGLE_CLIENT_ID || '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || '';
+  if (!clientId || !clientSecret || !refreshToken) return null;
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&refresh_token=${encodeURIComponent(refreshToken)}&grant_type=refresh_token`
+  });
+  const data = await res.json();
+  return data.access_token || null;
+}
+
 async function postToGoogleBusiness(title, articleUrl) {
-  const token      = process.env.GOOGLE_BUSINESS_TOKEN || '';
   const accountId  = process.env.GOOGLE_BUSINESS_ACCOUNT_ID || '';
   const locationId = process.env.GOOGLE_BUSINESS_LOCATION_ID || '';
-  if (!token || !accountId || !locationId) return {
+  const hasRefresh = !!(process.env.GOOGLE_REFRESH_TOKEN && process.env.GOOGLE_CLIENT_ID);
+  const hasStatic  = !!process.env.GOOGLE_BUSINESS_TOKEN;
+
+  if (!accountId || !locationId || (!hasRefresh && !hasStatic)) return {
     skipped: true, platform: 'Google Business',
-    reason: 'אין GOOGLE_BUSINESS_TOKEN / ACCOUNT_ID / LOCATION_ID'
+    reason: 'נדרש: GOOGLE_REFRESH_TOKEN + GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET + ACCOUNT_ID + LOCATION_ID'
   };
 
   try {
+    // קבל access token — refresh token מנצח static token
+    let accessToken = hasRefresh
+      ? await refreshGoogleToken()
+      : process.env.GOOGLE_BUSINESS_TOKEN;
+
+    if (!accessToken) return { ok: false, platform: 'Google Business', error: 'לא הצלחתי לרענן token' };
+
+    // תמונה + תבנית — לפי יום השנה
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    const imagePath = GBP_IMAGES[dayOfYear % GBP_IMAGES.length];
+    const imageUrl  = `${SITE_URL}/${imagePath}`;
+    const template  = GBP_TEMPLATES[dayOfYear % GBP_TEMPLATES.length];
+    const summary   = template(title, articleUrl || SITE_URL);
+
+    const body = {
+      languageCode: 'he',
+      summary,
+      callToAction: { actionType: 'LEARN_MORE', url: articleUrl || SITE_URL },
+      topicType: 'STANDARD',
+      media: [{ mediaFormat: 'PHOTO', sourceUrl: imageUrl }],
+    };
+
     const res = await fetch(
       `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/localPosts`,
       {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          languageCode: 'he',
-          summary: `${title} — Pixel by Keshet, מומחים למסכי LED ושילוט דיגיטלי בישראל. ✓ פרויקטים בכל הארץ ✓ שירות מהיר ✓ אחריות מלאה`,
-          callToAction: { actionType: 'LEARN_MORE', url: articleUrl || SITE_URL },
-          topicType: 'STANDARD',
-        })
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       }
     );
     const data = await res.json();
-    if (data.name) return { ok: true, platform: 'Google Business', url: SITE_URL };
+    if (data.name) return { ok: true, platform: 'Google Business', url: SITE_URL, image: imageUrl };
     return { ok: false, platform: 'Google Business', error: JSON.stringify(data.error || data) };
   } catch(e) { return { ok: false, platform: 'Google Business', error: e.message }; }
 }
