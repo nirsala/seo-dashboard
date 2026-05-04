@@ -413,8 +413,9 @@ async function postToGoogleBusiness(title, articleUrl) {
       media: [{ mediaFormat: 'PHOTO', sourceUrl: imageUrl }],
     };
 
+    // Business Profile API — local posts endpoint (v1)
     const res = await fetch(
-      `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/localPosts`,
+      `https://mybusiness.googleapis.com/v1/${locationId}/localPosts`,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
